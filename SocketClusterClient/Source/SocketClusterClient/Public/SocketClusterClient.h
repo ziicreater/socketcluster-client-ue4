@@ -1,4 +1,4 @@
-/** 
+/*
 *	
 *	MIT License
 * 
@@ -28,7 +28,13 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "Sockets.h"
+#include "SocketSubsystem.h"
 #include "SocketClusterClient.generated.h"
+
+typedef struct lws sc_lws;
+typedef struct lws_context sc_lws_context;
+typedef struct lws_set_wsi_user sc_lws_set_wsi_user;
 
 /**
  * 
@@ -37,8 +43,21 @@ UCLASS(Blueprintable, BlueprintType)
 class SOCKETCLUSTERCLIENT_API USocketClusterClient : public UObject
 {
 	GENERATED_BODY()
+
+public:
+
+	// Initialize SocketClusterClient Class.
+	USocketClusterClient();
 	
+	// Override BeginDestroy event.
+	virtual void BeginDestroy() override;
+
+	// Connect To SocketCluster Server Function.
+	void Connect(const FString& url);
 	
-	
+	sc_lws* lws;
+	sc_lws_context* lws_context;
+	sc_lws_set_wsi_user* lws_set_wsi_user;
+
 	
 };
