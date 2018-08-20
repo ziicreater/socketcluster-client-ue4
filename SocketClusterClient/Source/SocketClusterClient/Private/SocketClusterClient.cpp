@@ -26,6 +26,7 @@
 
 #include "SocketClusterClient.h"
 #include "SocketClusterModule.h"
+#include "SocketClusterContext.h"
 
 // Namespace UI Conflict.
 // Remove UI Namepspace
@@ -48,6 +49,8 @@ THIRD_PARTY_INCLUDES_END
 #elif PLATFORM_WINDOWS || PLATFORM_MAC
 #undef UI
 #endif 
+
+extern TSharedPtr<USocketClusterContext> _SocketClusterContext;
 
 // Initialize SocketClusterClient Class.
 USocketClusterClient::USocketClusterClient()
