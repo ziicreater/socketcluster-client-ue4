@@ -1,0 +1,23 @@
+{
+    "FileVersion": 3,
+    "Version": 1,
+    "VersionName": "1.0",
+    "FriendlyName": "SocketClusterClient",
+    "Description": "UE4 Client For SocketCluster",
+    "Category": "Networking",
+    "CreatedBy": "CodeWare Games",
+    "CreatedByURL": "https://www.codewaregames.com/",
+    "DocsURL": "https://github.com/ziicreater/socketcluster-client-ue4",
+    "MarketplaceURL": "",
+    "SupportURL": "https://github.com/ziicreater/socketcluster-client-ue4",
+    "CanContainContent": false,
+    "IsBetaVersion": false,
+    "Installed": true,
+    "Modules": [
+        {
+            "Name": "SocketClusterClient",
+            "Type": "Developer",
+            "LoadingPhase": "Default"
+        }
+    ]
+}
