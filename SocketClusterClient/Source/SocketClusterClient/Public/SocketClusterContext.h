@@ -69,6 +69,9 @@ public:
 	// Create a new SocketClusterClient using the Connect event.
 	USocketClusterClient* Connect(const FString& url);
 
+	// Disconnect from current SocketClusterContext connection.
+	void Disconnect();
+
 	// WebSocket Service Callback Function
 	static int ws_service_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
 

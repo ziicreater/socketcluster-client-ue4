@@ -49,6 +49,13 @@ USocketClusterClient* USocketCluster::Connect(const FString& url)
 	return _SocketClusterContext->Connect(url);
 }
 
-
-
-
+// Blueprint Disconnect Function
+void USocketCluster::Disconnect(USocketClusterClient * SocketClusterClient)
+{
+	// Check if the SocketClusterClient still exists before calling a function
+	if (SocketClusterClient != nullptr)
+	{
+		// Call Disconnect Function On the given SocketClusterClient
+		SocketClusterClient->Disconnect();
+	}
+}

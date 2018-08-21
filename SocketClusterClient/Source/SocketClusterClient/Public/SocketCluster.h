@@ -44,6 +44,10 @@ public:
 	// Blueprint Connect Function
 	UFUNCTION(BlueprintCallable, Category = "Socket Cluster")
 		static USocketClusterClient* Connect(const FString& url);
+
+	// Blueprint Disconnect Function
+	UFUNCTION(BlueprintCallable, Category = "Socket Cluster")
+		static void Disconnect(USocketClusterClient* SocketClusterClient);
 	
 	
 };

@@ -54,6 +54,9 @@ public:
 
 	// Connect To SocketCluster Server Function.
 	void Connect(const FString& url);
+
+	// Disconnect From SocketCluster Server Function.
+	void Disconnect();
 	
 	sc_lws* lws;
 	sc_lws_context* lws_context;

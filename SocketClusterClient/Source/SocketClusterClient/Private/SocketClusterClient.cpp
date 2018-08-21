@@ -176,3 +176,13 @@ void USocketClusterClient::Connect(const FString & url)
 		return;
 	}
 }
+
+// Disconnect From SocketCluster Server Function.
+void USocketClusterClient::Disconnect()
+{
+	if (lws != nullptr)
+	{
+		// Call Disconnect On SocketClusterContext
+		_SocketClusterContext->Disconnect();
+	}
+}

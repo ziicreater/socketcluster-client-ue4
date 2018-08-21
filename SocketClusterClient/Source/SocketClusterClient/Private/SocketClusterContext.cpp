@@ -137,6 +137,26 @@ USocketClusterClient * USocketClusterContext::Connect(const FString & url)
 	return NewSocketClusterClient;
 }
 
+// Disconnect from current SocketClusterContext connection.
+void USocketClusterContext::Disconnect()
+{
+	// Make sure we trying to disconnect on a connected SocketClusterContext
+	if (lws_context != nullptr)
+	{
+		// Call LWS Destroy Event
+		lws_context_destroy(lws_context);
+
+		// Set our Context to a nullptr 
+		lws_context = nullptr;
+
+		// Delete the current Protocols
+		delete protocols;
+
+		// Set our Protocols to a nullptr
+		protocols = nullptr;
+	}
+}
+
 // WebSocket Service Callback Function
 int USocketClusterContext::ws_service_callback(lws * wsi, lws_callback_reasons reason, void * user, void * in, size_t len)
 {
