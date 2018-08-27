@@ -30,7 +30,7 @@
 TSharedPtr<USocketClusterContext> _SocketClusterContext;
 
 // Blueprint Connect Function
-USocketClusterClient* USocketCluster::Connect(const FString& url)
+USocketClusterClient* USocketCluster::Connect(const FString& url, const float ackTimeout)
 {
 	// Check if the shared SocketClusterContext already exists
 	if (_SocketClusterContext.Get() == nullptr)
@@ -46,7 +46,7 @@ USocketClusterClient* USocketCluster::Connect(const FString& url)
 	}
 
 	// Return SocketClusterContext Connect Function
-	return _SocketClusterContext->Connect(url);
+	return _SocketClusterContext->Connect(url, ackTimeout);
 }
 
 // Blueprint Disconnect Function
@@ -57,5 +57,14 @@ void USocketCluster::Disconnect(USocketClusterClient * SocketClusterClient)
 	{
 		// Call Disconnect Function On the given SocketClusterClient
 		SocketClusterClient->Disconnect();
+	}
+}
+
+void USocketCluster::Emit(USocketClusterClient* SocketClusterClient, UObject* WorldContextObject, const FString& event, const FString& data, const FResponseCallback& callback, FLatentActionInfo LatentInfo)
+{
+	// Check if the SocketClusterClient still exists before calling a function
+	if (SocketClusterClient != nullptr)
+	{
+		SocketClusterClient->Emit(WorldContextObject, event, data, callback, LatentInfo);
 	}
 }

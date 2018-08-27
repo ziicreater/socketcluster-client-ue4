@@ -67,13 +67,16 @@ public:
 	virtual TStatId GetStatId() const override;
 
 	// Create a new SocketClusterClient using the Connect event.
-	USocketClusterClient* Connect(const FString& url);
+	USocketClusterClient* Connect(const FString& url, const float& ackTimeout);
 
 	// Disconnect from current SocketClusterContext connection.
 	void Disconnect();
 
 	// WebSocket Service Callback Function
 	static int ws_service_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
+
+	// Websocket Service WriteBack Function
+	static int ws_write_back(struct lws *wsi, const char *str, int str_size_in);
 
 	sc_lws_context* lws_context;
 	sc_lws_protocols* protocols;

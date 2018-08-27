@@ -28,13 +28,21 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "SocketClusterModule.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"
+#include "Runtime/Json/Public/Dom/JsonObject.h"
+#include "Runtime/JsonUtilities/Public/JsonObjectConverter.h"
+#include "Runtime/JsonUtilities/Public/JsonObjectWrapper.h"
+#include "Delegates/DelegateCombinations.h"
+#include "LatentActions.h"
 #include "SocketClusterClient.generated.h"
 
 typedef struct lws sc_lws;
 typedef struct lws_context sc_lws_context;
 typedef struct lws_set_wsi_user sc_lws_set_wsi_user;
+
+DECLARE_DYNAMIC_DELEGATE_OneParam(FResponseCallback, FString, Response);
 
 /**
  * 
@@ -57,10 +65,26 @@ public:
 
 	// Disconnect From SocketCluster Server Function.
 	void Disconnect();
-	
+
+	// Emit To SocketCluster Server Function.
+	void Emit(UObject* WorldContextObject, const FString& event, const FString& data, const FResponseCallback& callback, struct FLatentActionInfo LatentInfo);
+
+	void WriteBuffer();
+
+	// Call ID
+	double cid;
+
+	// AckTimeOut
+	static float AckTimeout;
+
 	sc_lws* lws;
 	sc_lws_context* lws_context;
 	sc_lws_set_wsi_user* lws_set_wsi_user;
 
-	
+	// Responses Buffer
+	static TMap<double, FString> Responses;
+
+	// Send Buffer
+	TArray<TSharedPtr<FJsonObject>> Send;
+
 };

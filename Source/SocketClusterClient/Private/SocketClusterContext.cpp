@@ -119,7 +119,7 @@ TStatId USocketClusterContext::GetStatId() const
 }
 
 // Create a new SocketClusterClient using the Connect event.
-USocketClusterClient * USocketClusterContext::Connect(const FString & url)
+USocketClusterClient * USocketClusterContext::Connect(const FString & url, const float& ackTimeout)
 {
 
 	// Check if the context has been created
@@ -133,6 +133,7 @@ USocketClusterClient * USocketClusterContext::Connect(const FString & url)
 	// without interfering each other
 	USocketClusterClient* NewSocketClusterClient = NewObject<USocketClusterClient>();
 	NewSocketClusterClient->lws_context = lws_context;
+	NewSocketClusterClient->AckTimeout = ackTimeout;
 	NewSocketClusterClient->Connect(url);
 	return NewSocketClusterClient;
 }
@@ -158,8 +159,99 @@ void USocketClusterContext::Disconnect()
 }
 
 // WebSocket Service Callback Function
-int USocketClusterContext::ws_service_callback(lws * wsi, lws_callback_reasons reason, void * user, void * in, size_t len)
+int USocketClusterContext::ws_service_callback(lws * lws, lws_callback_reasons reason, void * user, void * in, size_t len)
 {
+	// Get the SocketClusterClient where connection was called from.
+	void* pUser = lws_wsi_user(lws);
+	USocketClusterClient* pSocketClusterClient = (USocketClusterClient*)pUser;
+
+	switch (reason)
+	{
+		// Connection Established
+	case LWS_CALLBACK_CLIENT_ESTABLISHED:
+	{
+
+		UE_LOG(SocketClusterClientLog, Error, TEXT("Connected."));
+		TSharedPtr<FJsonObject> jobj = MakeShareable(new FJsonObject);
+		jobj->SetStringField("event", "#handshake");
+		jobj->SetNumberField("cid", 0);
+		jobj->SetObjectField("data", NULL);
+
+		FString jsonstring;
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&jsonstring);
+		FJsonSerializer::Serialize(jobj.ToSharedRef(), Writer);
+
+		std::string data = TCHAR_TO_UTF8(*jsonstring);
+		ws_write_back(lws, data.c_str(), -1);
+	}
+	break;
+
+	case LWS_CALLBACK_CLIENT_RECEIVE:
+	{
+		if (strcmp((char *)in, "#1") == 0)
+		{
+			ws_write_back(lws, (char*)"#2", -1);
+			UE_LOG(SocketClusterClientLog, Error, TEXT("Heart Beat"));
+		}
+		else {
+
+			FString recv = UTF8_TO_TCHAR(in);
+
+			UE_LOG(SocketClusterClientLog, Error, TEXT("Received : %s"), *recv);
+
+			TSharedPtr<FJsonObject> JsonObj;
+			TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(*recv);
+
+			if (FJsonSerializer::Deserialize(Reader, JsonObj) && JsonObj.IsValid())
+			{
+				pSocketClusterClient->Responses.Add(FCString::Atoi(*JsonObj->GetStringField("rid")), JsonObj->GetStringField("data"));
+
+				UE_LOG(SocketClusterClientLog, Error, TEXT("Received : %s"), *recv);
+			}
+		}
+	}
+	break;
+
+	case LWS_CALLBACK_CLIENT_WRITEABLE:
+	{
+		if (!pSocketClusterClient) return -1;
+		pSocketClusterClient->WriteBuffer();
+	}
+	break;
+
+	default:
+		break;
+
+	}
+
 	return 0;
+}
+	
+
+int USocketClusterContext::ws_write_back(lws * lws, const char * str, int str_size_in)
+{
+
+	
+	if (str == NULL || lws == NULL)
+		return -1;
+
+	int n;
+	int len;
+	unsigned char *out = NULL;
+
+	if (str_size_in < 1)
+		len = strlen(str);
+	else
+		len = str_size_in;
+
+	out = (unsigned char*)malloc(sizeof(unsigned char)*(LWS_SEND_BUFFER_PRE_PADDING + len + LWS_SEND_BUFFER_POST_PADDING));
+
+	memcpy(out + LWS_SEND_BUFFER_PRE_PADDING, str, len);
+
+	n = lws_write(lws, out + LWS_SEND_BUFFER_PRE_PADDING, len, LWS_WRITE_TEXT);
+
+	free(out);
+
+	return n;
 }
 

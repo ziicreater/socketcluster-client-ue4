@@ -27,6 +27,8 @@
 #include "SocketClusterClient.h"
 #include "SocketClusterModule.h"
 #include "SocketClusterContext.h"
+#include "Runtime/Engine/Classes/Engine/Engine.h"
+#include "SocketClusterResponse.h"
 
 // Namespace UI Conflict.
 // Remove UI Namepspace
@@ -52,9 +54,13 @@ THIRD_PARTY_INCLUDES_END
 
 extern TSharedPtr<USocketClusterContext> _SocketClusterContext;
 
+TMap<double, FString> USocketClusterClient::Responses;
+float USocketClusterClient::AckTimeout;
+
 // Initialize SocketClusterClient Class.
 USocketClusterClient::USocketClusterClient()
 {
+	cid = 1;
 	lws_context = nullptr;
 	lws = nullptr;
 }
@@ -184,5 +190,58 @@ void USocketClusterClient::Disconnect()
 	{
 		// Call Disconnect On SocketClusterContext
 		_SocketClusterContext->Disconnect();
+	}
+}
+
+// Send Emit Event To SocketCluster Server Function.
+void USocketClusterClient::Emit(UObject * WorldContextObject, const FString& event, const FString& data, const FResponseCallback& callback, FLatentActionInfo LatentInfo)
+{
+
+	// Create a JsonObject To Send
+	TSharedPtr<FJsonObject> jobj = MakeShareable(new FJsonObject);
+	jobj->SetStringField("event", event);
+	jobj->SetStringField("data", data);
+		
+	// Get the WorldContext
+	if (UWorld* World = GEngine->GetWorldFromContextObjectChecked(WorldContextObject))
+	{
+		// Get LatentActionManager
+		FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
+		if (LatentActionManager.FindExistingAction<SocketClusterResponse>(LatentInfo.CallbackTarget, LatentInfo.UUID) == NULL)
+		{
+			// Check if we have a callback event connected
+			if (callback.IsBound())
+			{
+				// At CallID
+				jobj->SetNumberField("cid", cid);
+				// At Latent Action To Manager
+				LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new SocketClusterResponse(cid, callback, LatentInfo));
+				// Increase CallID
+				cid++;
+			}
+			else 
+			{
+				// At Latent Action Without Callback
+				LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new SocketClusterResponse(NULL, callback, LatentInfo));
+			}
+		}
+	}
+	
+	// At the json object to the buffer
+	Send.Add(jobj);
+
+}
+
+void USocketClusterClient::WriteBuffer()
+{
+	while (Send.Num() > 0)
+	{
+		FString jsonstring;
+		TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&jsonstring);
+		FJsonSerializer::Serialize(Send[0].ToSharedRef(), Writer);
+
+		std::string strData = TCHAR_TO_UTF8(*jsonstring);
+		_SocketClusterContext->ws_write_back(lws, strData.c_str(), strData.size());
+		Send.RemoveAt(0);
 	}
 }

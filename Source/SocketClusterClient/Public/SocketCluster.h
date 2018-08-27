@@ -42,12 +42,16 @@ class SOCKETCLUSTERCLIENT_API USocketCluster : public UBlueprintFunctionLibrary
 public:
 
 	// Blueprint Connect Function
-	UFUNCTION(BlueprintCallable, Category = "Socket Cluster")
-		static USocketClusterClient* Connect(const FString& url);
+	UFUNCTION(BlueprintCallable, Category = "Socket Cluster", meta = (AdvancedDisplay = "1"))
+		static USocketClusterClient* Connect(const FString& url, const float ackTimeout = 10.0f);
 
 	// Blueprint Disconnect Function
 	UFUNCTION(BlueprintCallable, Category = "Socket Cluster")
 		static void Disconnect(USocketClusterClient* SocketClusterClient);
+
+	// Blueprint Emit Function
+	UFUNCTION(BlueprintCallable, Category = "Socket Cluster", meta = (Latent, LatentInfo = "LatentInfo", HidePin = "WorldContextObject", AutoCreateRefTerm = "callback", DefaultToSelf = "WorldContextObject", AdvancedDisplay = "4"))
+		static void Emit(USocketClusterClient* SocketClusterClient, UObject* WorldContextObject, const FString& event, const FString& data, const FResponseCallback& callback, struct FLatentActionInfo LatentInfo);
 	
 	
 };
