@@ -12,8 +12,8 @@ public class SocketClusterClient : ModuleRules
 #endif
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-		PublicIncludePaths.AddRange(
+
+        PublicIncludePaths.AddRange(
 			new string[] {
 				"SocketClusterClient/Public"
 				// ... add public include paths required here ...

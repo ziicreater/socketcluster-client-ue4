@@ -26,11 +26,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
-#include "Sockets.h"
-#include "SocketSubsystem.h"
-#include "Tickable.h"
+#include "SocketClusterPrivatePCH.h"
 #include "SocketClusterContext.generated.h"
 
 typedef struct lws_context sc_lws_context;

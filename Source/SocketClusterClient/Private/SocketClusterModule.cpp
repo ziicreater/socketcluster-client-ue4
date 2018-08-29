@@ -28,8 +28,6 @@
 
 #define LOCTEXT_NAMESPACE "FSocketClusterModule"
 
-DEFINE_LOG_CATEGORY(SocketClusterClientLog);
-
 void FSocketClusterModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
@@ -41,6 +39,9 @@ void FSocketClusterModule::ShutdownModule()
 	// we call this function before unloading the module.
 }
 
-#undef LOCTEXT_NAMESPACE
-	
 IMPLEMENT_MODULE(FSocketClusterModule, SocketClusterClient)
+
+DEFINE_LOG_CATEGORY(SocketClusterClientLog);
+
+#undef LOCTEXT_NAMESPACE
+
