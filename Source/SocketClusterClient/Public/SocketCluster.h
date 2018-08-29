@@ -41,15 +41,31 @@ class SOCKETCLUSTERCLIENT_API USocketCluster : public UBlueprintFunctionLibrary
 	
 public:
 
-	// Blueprint Connect Function
+	/* Returns the state of the socket */
+	UFUNCTION(BlueprintPure, Category = "Socket Cluster")
+		static EState GetState(USocketClusterClient* SocketClusterClient);
+
+	/* Returns the auth state of the socket */
+	UFUNCTION(BlueprintPure, Category = "Socket Cluster")
+		static EAuthState GetAuthState(USocketClusterClient* SocketClusterClient);
+
+	/* Returns the auth token associated with the socket */
+	UFUNCTION(BlueprintPure, Category = "Socket Cluster")
+		static FString GetAuthToken(USocketClusterClient* SocketClusterClient);
+
+	/* Returns the signed auth token associated with the socket */
+	UFUNCTION(BlueprintPure, Category = "Socket Cluster")
+		static FString GetSignedAuthToken(USocketClusterClient* SocketClusterClient);
+
+	/* Connect to SocketCluster Server */
 	UFUNCTION(BlueprintCallable, Category = "Socket Cluster", meta = (AdvancedDisplay = "1"))
 		static USocketClusterClient* Connect(const FString& url, const float ackTimeout = 10.0f);
 
-	// Blueprint Disconnect Function
+	/* Disconnect From SocketCluster Server */
 	UFUNCTION(BlueprintCallable, Category = "Socket Cluster")
 		static void Disconnect(USocketClusterClient* SocketClusterClient);
 
-	// Blueprint Emit Function
+	/* Send Emit To SocketCluster Server */
 	UFUNCTION(BlueprintCallable, Category = "Socket Cluster", meta = (Latent, LatentInfo = "LatentInfo", HidePin = "WorldContextObject", AutoCreateRefTerm = "callback", DefaultToSelf = "WorldContextObject", AdvancedDisplay = "4"))
 		static void Emit(USocketClusterClient* SocketClusterClient, UObject* WorldContextObject, const FString& event, const FString& data, const FResponseCallback& callback, struct FLatentActionInfo LatentInfo);
 	

@@ -25,32 +25,9 @@
 */
 
 #include "SocketClusterClient.h"
-#include "SocketClusterModule.h"
 #include "SocketClusterContext.h"
-#include "Runtime/Engine/Classes/Engine/Engine.h"
 #include "SocketClusterResponse.h"
-
-// Namespace UI Conflict.
-// Remove UI Namepspace
-#if PLATFORM_LINUX
-#pragma push_macro("UI")
-#undef UI
-#elif PLATFORM_WINDOWS || PLATFORM_MAC
-#define UI UI_ST
-#endif 
-
-THIRD_PARTY_INCLUDES_START
-#include <iostream>
-#include "libwebsockets.h"
-THIRD_PARTY_INCLUDES_END
-
-// Namespace UI Conflict.
-// Restore UI Namepspace
-#if PLATFORM_LINUX
-#pragma pop_macro("UI")
-#elif PLATFORM_WINDOWS || PLATFORM_MAC
-#undef UI
-#endif 
+#include "SocketClusterPrivatePCH.h"
 
 extern TSharedPtr<USocketClusterContext> _SocketClusterContext;
 
@@ -60,6 +37,22 @@ float USocketClusterClient::AckTimeout;
 // Initialize SocketClusterClient Class.
 USocketClusterClient::USocketClusterClient()
 {
+
+	// Set The current id
+	this->Id = NULL;
+
+	// Set the current State
+	this->State = EState::CLOSED;
+
+	// Set the current AuthState
+	this->AuthState = EAuthState::UNAUTHENTICATED;
+
+	// Set the current AuthToken
+	this->AuthToken = NULL;
+
+	// Set the current SignedAuthToken
+	this->SignedAuthToken = NULL;
+
 	cid = 1;
 	lws_context = nullptr;
 	lws = nullptr;
@@ -172,12 +165,17 @@ void USocketClusterClient::Connect(const FString & url)
 	info.ietf_version_or_minus_one = -1;
 	info.userdata = this;
 
+	// Set the state of the socket
+	this->State = EState::CONNECTING;
+
 	// Create connection
 	lws = lws_client_connect_via_info(&info);
 
 	// Check if creating connection info was successful
 	if (lws == nullptr)
 	{
+		// Set the state of the socket
+		this->State = EState::CLOSED;
 		UE_LOG(SocketClusterClientLog, Error, TEXT("Error Trying To Create Client Connecton."));
 		return;
 	}

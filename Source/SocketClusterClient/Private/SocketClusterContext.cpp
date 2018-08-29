@@ -26,29 +26,7 @@
 
 #include "SocketClusterContext.h"
 #include "SocketClusterClient.h"
-#include "SocketClusterModule.h"
-
-// Namespace UI Conflict.
-// Remove UI Namepspace
-#if PLATFORM_LINUX
-#pragma push_macro("UI")
-#undef UI
-#elif PLATFORM_WINDOWS || PLATFORM_MAC
-#define UI UI_ST
-#endif 
-
-THIRD_PARTY_INCLUDES_START
-#include <iostream>
-#include "libwebsockets.h"
-THIRD_PARTY_INCLUDES_END
-
-// Namespace UI Conflict.
-// Restore UI Namepspace
-#if PLATFORM_LINUX
-#pragma pop_macro("UI")
-#elif PLATFORM_WINDOWS || PLATFORM_MAC
-#undef UI
-#endif 
+#include "SocketClusterPrivatePCH.h"
 
 extern TSharedPtr<USocketClusterContext> _SocketClusterContext;
 
@@ -170,6 +148,8 @@ int USocketClusterContext::ws_service_callback(lws * lws, lws_callback_reasons r
 		// Connection Established
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
 	{
+		// Set the state of the socket
+		pSocketClusterClient->State = EState::OPEN;
 
 		UE_LOG(SocketClusterClientLog, Error, TEXT("Connected."));
 		TSharedPtr<FJsonObject> jobj = MakeShareable(new FJsonObject);

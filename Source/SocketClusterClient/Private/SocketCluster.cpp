@@ -29,6 +29,58 @@
 
 TSharedPtr<USocketClusterContext> _SocketClusterContext;
 
+/* Returns the state of the socket */
+EState USocketCluster::GetState(USocketClusterClient * SocketClusterClient)
+{
+	// Check if the SocketClusterClient still exists before returning a var
+	if (SocketClusterClient != nullptr)
+	{
+		// return the current state of the socket
+		return SocketClusterClient->State;
+	}
+
+	return EState::CLOSED;
+}
+
+/* Returns the auth state of the socket */
+EAuthState USocketCluster::GetAuthState(USocketClusterClient * SocketClusterClient)
+{
+	// Check if the SocketClusterClient still exists before returning a var
+	if (SocketClusterClient != nullptr)
+	{
+		// return the current state of the socket
+		return SocketClusterClient->AuthState;
+	}
+
+	return EAuthState::UNAUTHENTICATED;
+}
+
+/* Returns the auth token associated with the socket */
+FString USocketCluster::GetAuthToken(USocketClusterClient * SocketClusterClient)
+{
+	// Check if the SocketClusterClient still exists before returning a var
+	if (SocketClusterClient != nullptr)
+	{
+		// return the current auth token
+		return SocketClusterClient->AuthToken;
+	}
+
+	return FString();
+}
+
+/* Returns the signed auth token associated with the socket */
+FString USocketCluster::GetSignedAuthToken(USocketClusterClient * SocketClusterClient)
+{
+	// Check if the SocketClusterClient still exists before returning a var
+	if (SocketClusterClient != nullptr)
+	{
+		// return the current signed auth token
+		return SocketClusterClient->SignedAuthToken;
+	}
+
+	return FString();
+}
+
 // Blueprint Connect Function
 USocketClusterClient* USocketCluster::Connect(const FString& url, const float ackTimeout)
 {

@@ -44,6 +44,23 @@ typedef struct lws_set_wsi_user sc_lws_set_wsi_user;
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FResponseCallback, FString, Response);
 
+/* ENUM for the current state of the socket */
+UENUM()
+enum class EState : uint8 
+{
+	CONNECTING,
+	OPEN,
+	CLOSED
+};
+
+/* ENUM for the current authentication state of the socket */
+UENUM()
+enum class EAuthState : uint8 
+{
+	AUTHENTICATED,
+	UNAUTHENTICATED
+};
+
 /**
  * 
  */
@@ -54,19 +71,34 @@ class SOCKETCLUSTERCLIENT_API USocketClusterClient : public UObject
 
 public:
 
-	// Initialize SocketClusterClient Class.
+	/* Initialize SocketClusterClient Class */
 	USocketClusterClient();
 	
-	// Override BeginDestroy event.
+	/* Override BeginDestroy event */
 	virtual void BeginDestroy() override;
 
-	// Connect To SocketCluster Server Function.
+	/* the socket id */
+	FString Id;
+
+	/* The current state of the socket */
+	EState State;
+
+	/* The current authentication state of the socket */
+	EAuthState AuthState;
+
+	/* The auth token currently associated with the socket. */
+	FString AuthToken;
+	
+	/* The signed auth token currently associated with the socket encoded and signed in the JWT format */
+	FString SignedAuthToken;
+
+	/* Connect To SocketCluster Server Function */
 	void Connect(const FString& url);
 
-	// Disconnect From SocketCluster Server Function.
+	/* Disconnect From SocketCluster Server Function */
 	void Disconnect();
 
-	// Emit To SocketCluster Server Function.
+	/* Emit To SocketCluster Server */
 	void Emit(UObject* WorldContextObject, const FString& event, const FString& data, const FResponseCallback& callback, struct FLatentActionInfo LatentInfo);
 
 	void WriteBuffer();
