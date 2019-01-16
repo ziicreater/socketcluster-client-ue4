@@ -49,7 +49,7 @@ SourceArt/**/*.png
 SourceArt/**/*.tga
 
 # Binary Files
-Binaries/*
+SocketCluster/Binaries/*
 Plugins/*/Binaries/*
 
 # Builds
@@ -70,7 +70,7 @@ Build/*/**
 Saved/*
 
 # Compiled source files for the engine to use
-Intermediate/*
+SocketCluster/Intermediate/*
 Plugins/*/Intermediate/*
 
 # Cache files for the editor to use

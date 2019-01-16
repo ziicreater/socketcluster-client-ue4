@@ -46,9 +46,10 @@
 
 ## UE4 Versions
 
-This plugin has been tested with following Unreal Engine 4 versions and won't work with a version lower then >x.xx
+This plugin has been tested with following Unreal Engine 4 versions and won't work with a version lower then >4.19
 
-- x.xx
+- 4.19
+- 4.20
 
 ## Download And Install
 
