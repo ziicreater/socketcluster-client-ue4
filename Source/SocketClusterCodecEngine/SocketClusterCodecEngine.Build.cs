@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class SocketClusterClient : ModuleRules
+public class SocketClusterCodecEngine : ModuleRules
 {
-	public SocketClusterClient(ReadOnlyTargetRules Target) : base(Target)
+	public SocketClusterCodecEngine(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
@@ -25,14 +25,7 @@ public class SocketClusterClient : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-                "Core",
-                "CoreUObject",
-                "Engine",
-                "Sockets",
-                "libWebSockets",
-                "OpenSSL",
-                "zlib",
-                "Json",
+				"Core",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -41,16 +34,9 @@ public class SocketClusterClient : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-                "Core",
 				"CoreUObject",
 				"Engine",
-                "Sockets",
-                "libWebSockets",
-                "OpenSSL",
-                "zlib",
-                "Json",
                 "SocketClusterJson",
-                "SocketClusterCodecEngine",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

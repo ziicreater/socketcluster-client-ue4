@@ -1,245 +1,353 @@
-/*
-*
-*	MIT License
-*
-*	Copyright(c) 2018 ZiiCreater LLC
-*
-*	Permission is hereby granted, free of charge, to any person obtaining a copy
-*	of this software and associated documentation files(the "Software"), to deal
-*	in the Software without restriction, including without limitation the rights
-*	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-*	copies of the Software, and to permit persons to whom the Software is
-*	furnished to do so, subject to the following conditions :
-*
-*	The above copyright notice and this permission notice shall be included in all
-*	copies or substantial portions of the Software.
-*
-*	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-*	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-*	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-*	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-*	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-*	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-*	SOFTWARE.
-*
-*/
+// Copyright 2018 ZiiCreater, LLC. All Rights Reserved.
 
 #include "SocketClusterClient.h"
 #include "SocketClusterContext.h"
-#include "SocketClusterResponse.h"
-#include "SocketClusterPrivatePCH.h"
+#include "SocketClusterClientModule.h"
 
-extern TSharedPtr<USocketClusterContext> _SocketClusterContext;
+// Namespace UI Conflict.
+// Remove UI Namepspace
+#if PLATFORM_LINUX
+#pragma push_macro("UI")
+#undef UI
+#elif PLATFORM_WINDOWS || PLATFORM_MAC
+#define UI UI_ST
+#endif 
 
-TMap<double, FString> USocketClusterClient::Responses;
-float USocketClusterClient::AckTimeout;
+THIRD_PARTY_INCLUDES_START
+#include <iostream>
+#include "libwebsockets.h"
+THIRD_PARTY_INCLUDES_END
 
-// Initialize SocketClusterClient Class.
+// Namespace UI Conflict.
+// Restore UI Namepspace
+#if PLATFORM_LINUX
+#pragma pop_macro("UI")
+#elif PLATFORM_WINDOWS || PLATFORM_MAC
+#undef UI
+#endif 
+
+TSharedPtr<USocketClusterContext> _SocketClusterContext;
+
+/* Set default settings for SocketCluster Client */
 USocketClusterClient::USocketClusterClient()
 {
 
-	// Set The current id
-	this->Id = NULL;
+	/* Set this socket cluster client as actice */
+	this->active = true;
 
-	// Set the current State
-	this->State = EState::CLOSED;
+	/* Set the current id of the socket to null when first creating a instance */
+	this->id = NULL;
 
-	// Set the current AuthState
-	this->AuthState = EAuthState::UNAUTHENTICATED;
+	/* Set the first call id to 1 */
+	this->cid = 1;
 
-	// Set the current AuthToken
-	this->AuthToken = NULL;
+	/* Set the current state of the socket to closed when first creating a instance */
+	this->state = ESocketClusterState::CLOSED;
 
-	// Set the current SignedAuthToken
-	this->SignedAuthToken = NULL;
+	/* Set the current authState of the socket to unauthenticated when first creating a instance */
+	this->authState = ESocketClusterAuthState::UNAUTHENTICATED;
 
-	cid = 1;
-	lws_context = nullptr;
-	lws = nullptr;
+	/* Set the current signedAuthToken of the socket to null when first creating a instance */
+	this->signedAuthToken = NULL;
+	
+	/* Set the current authToken of the socket to null when first creating a instance */
+	this->authToken = NULL;
+
+	/* Set the current pendingReconnect of the socket to false when first creating a instance */
+	this->pendingReconnect = false;
+
+	/* Set the current pendingReconnectTimeout of the socket to false when first creating a instance */
+	this->pendingReconnectTimeout = false;
+
+	/* Set the current preparingPendingSubscriptions of the socket to false when first creating a instance */
+	this->preparingPendingSubscriptions = false;
+
+	/* Set the current pingTimeoutDisabled of the socket to false when first creating a instance */
+	this->pingTimeoutDisabled = false;
+
+	/* Set the current connectAttempts of the socket to 0 when first creating a instance */
+	this->connectAttempts = 0;
+
 }
 
-// Override BeginDestroy Event.
+void USocketClusterClient::OnPublish(const FOnPublish& event)
+{
+	OnPublishCallback = event;
+}
+
+/*
+void USocketClusterClient::OnAuthToken(const FOnAuthToken& event)
+{
+	OnAuthTokenCallback = event;
+}
+*/
+
+/* Override the BeginDestroy function from the object */
 void USocketClusterClient::BeginDestroy()
 {
+	if (context != nullptr)
+	{
+		lws_context_destroy(context);
+		context = nullptr;
+		_SocketClusterContext.Reset();
+	}
 	Super::BeginDestroy();
 }
 
-// Connect To SocketCluster Server Function.
-void USocketClusterClient::Connect(const FString & url)
+/* Call Id Generator */
+int32 USocketClusterClient::callIdGenerator()
+{
+	return this->cid++;
+}
+
+/* Create an instance of SocketClusterClient */
+USocketClusterClient* USocketClusterClient::Create
+(
+	const TArray<FSocketClusterKeyValue>& Query,
+	UObject* Codec,
+	const FString& uri,
+	const bool AutoConnect,
+	const bool AutoReconnect,
+	const float ReconnectInitialDelay,
+	const float ReconnectRandomness,
+	const float ReconnectMultiplier,
+	const float ReconnectMaxDelay,
+	const bool AutoSubscribeOnConnect,
+	const float ConnectTimeout,
+	const float AckTimeout,
+	const bool TimestampRequests,
+	const FString& TimestampParam
+)
+{
+	if (_SocketClusterContext.Get() == nullptr)
+	{
+		_SocketClusterContext = MakeShareable(NewObject<USocketClusterContext>());
+		_SocketClusterContext->CreateContext();
+		_SocketClusterContext->AddToRoot();
+	}
+
+	return _SocketClusterContext->Create(Query, Codec, uri, AutoConnect, AutoReconnect, ReconnectInitialDelay, ReconnectRandomness, ReconnectMultiplier, ReconnectMaxDelay, AutoSubscribeOnConnect, ConnectTimeout, AckTimeout, TimestampRequests, TimestampParam);
+}
+
+/* Connect to the SocketCluster Server */
+void USocketClusterClient::Connect()
 {
 
-	// Exit if the url passed is empty.
-	if (url.IsEmpty())
+	if (!this->active)
 	{
+		UE_LOG(LogSocketClusterClient, Error, TEXT("%s : Cannot connect a destroyed client"), *SCC_FUNC_LINE);
 		return;
 	}
 
-	// Check if the SocketClusterContext has already been created other wise exit
-	if (lws_context == nullptr)
+	if (this->state == ESocketClusterState::CLOSED)
 	{
-		return;
-	}
+		this->pendingReconnect = false;
+		this->pendingReconnectTimeout = NULL;
 
-	// By default we don't connect using SSL
-	int UseSSL = 0;
+		this->state = ESocketClusterState::CONNECTING;
 
-	// Check if we passed the right url format
-	int url_find = url.Find(TEXT(":"));
-	if (url_find == INDEX_NONE)
-	{
-		return;
-	}
-
-	// Get the protocol we wan't connect with
-	FString protocol = url.Left(url_find);
-
-	// Check if we passed a supported protocol
-	if (protocol.ToLower() != TEXT("ws") && protocol.ToLower() != TEXT("wss"))
-	{
-		return;
-	}
-
-	// Check if we wan't to connect using SSL
-	if (protocol.ToLower() == TEXT("wss"))
-	{
-		UseSSL = 2;
-	}
-
-	FString host;
-	FString path = TEXT("/");
-	FString next_part = url.Mid(url_find + 3);
-	url_find = next_part.Find("/");
-
-	// Check if we passed a path other then /
-	// example : ws://example.com/mypath/
-	if (url_find != INDEX_NONE)
-	{
-		host = next_part.Left(url_find);
-		path = next_part.Mid(url_find);
-	}
-	else
-	{
-		host = next_part;
-	}
-
-	// Set address to current host
-	FString address = host;
-
-	// Set default port to 80
-	int port = 80;
-
-	url_find = address.Find(":");
-
-	// Check if we passed a port to the url
-	if (url_find != INDEX_NONE)
-	{
-		address = host.Left(url_find);
-		port = FCString::Atoi(*host.Mid(url_find + 1));
-	}
-	else
-	{
-		// If we diden't pass a port and we are using SSL set port to 443
-		if (UseSSL)
+		/* Check if we have a context */
+		if (context == nullptr)
 		{
-			port = 443;
+			return;
 		}
-	}
+		
+		int iUseSSL = 0;
+		int iPos = uri.Find(TEXT(":"));
+		if (iPos == INDEX_NONE)
+		{
+			UE_LOG(LogSocketClusterClient, Error, TEXT("%s : Wrong Uri Format"), *SCC_FUNC_LINE);
+			return;
+		}
 
-	// Create the connection info
-	struct lws_client_connect_info info;
-	memset(&info, 0, sizeof(info));
+		FString strProtocol = uri.Left(iPos);
+		if (strProtocol.ToUpper() != TEXT("WS") && strProtocol.ToUpper() != TEXT("WSS") && strProtocol.ToUpper() != TEXT("HTTP") && strProtocol.ToUpper() != TEXT("HTTPS"))
+		{
+			UE_LOG(LogSocketClusterClient, Error, TEXT("%s : Protocol not supported"), *SCC_FUNC_LINE);
+			return;
+		}
 
-	// Convert the FString type to std:string so libwebsockets can read it.
-	std::string stdaddress = TCHAR_TO_UTF8(*address);
-	std::string stdpath = TCHAR_TO_UTF8(*path);
-	std::string stdhost = TCHAR_TO_UTF8(*host);
+		if (strProtocol.ToUpper() == TEXT("WSS") || strProtocol.ToUpper() == TEXT("HTTPS"))
+		{
+			iUseSSL = 2;
+		}
 
-	// Set connection info
-	info.context = lws_context;
-	info.address = stdaddress.c_str();
-	info.port = port;
-	info.ssl_connection = UseSSL;
-	info.path = stdpath.c_str();
-	info.host = stdhost.c_str();
-	info.origin = stdhost.c_str();
-	info.ietf_version_or_minus_one = -1;
-	info.userdata = this;
+		FString strHost;
+		FString strPath = TEXT("/");
+		FString strNextParse = uri.Mid(iPos + 3);
+		iPos = strNextParse.Find("/");
+		if (iPos != INDEX_NONE)
+		{
+			strHost = strNextParse.Left(iPos);
+			strPath = strNextParse.Mid(iPos);
+		}
+		else
+		{
+			strHost = strNextParse;
+		}
 
-	// Set the state of the socket
-	this->State = EState::CONNECTING;
+		FString strAddress = strHost;
+		int iPort = 80;
+		iPos = strAddress.Find(":");
+		if (iPos != INDEX_NONE)
+		{
+			strAddress = strHost.Left(iPos);
+			iPort = FCString::Atoi(*strHost.Mid(iPos + 1));
+		}
+		else
+		{
+			if (iUseSSL)
+			{
+				iPort = 443;
+			}
+		}
 
-	// Create connection
-	lws = lws_client_connect_via_info(&info);
+		if (bTimestampRequests)
+		{
+			FSocketClusterKeyValue timestampRequests;
+			timestampRequests.key = timestampParam;
+			timestampRequests.value = FString::Printf(TEXT("%lld"), FDateTime::Now().ToUnixTimestamp() / 1000);
+			query.Add(timestampRequests);
+		}
 
-	// Check if creating connection info was successful
-	if (lws == nullptr)
-	{
-		// Set the state of the socket
-		this->State = EState::CLOSED;
-		UE_LOG(SocketClusterClientLog, Error, TEXT("Error Trying To Create Client Connecton."));
-		return;
+		FString queryString;
+		if (query.Num() > 0)
+		{
+			for (auto& it : query)
+			{
+				//std::string strKey = TCHAR_TO_UTF8(*(it.key));
+				//std::string strValue = TCHAR_TO_UTF8(*(it.value));
+				
+				if (queryString.IsEmpty())
+				{
+					queryString.Append(TEXT("?")).Append(it.key).Append(TEXT("=")).Append(it.value);
+					//queryString = "?" + it.key + "=" + it.value;
+				}
+				else
+				{
+					queryString.Append(TEXT("&")).Append(it.key).Append(TEXT("=")).Append(it.value);
+					//queryString = queryString + "&" + it.key + "=" + it.value;
+				}
+
+			}
+			strHost.Append(queryString);
+			//strAddress = strAddress + queryString;
+			UE_LOG(LogSocketClusterClient, Error, TEXT("%s : queryString = %s"), *SCC_FUNC_LINE, *strHost);
+		}
+		
+
+		struct lws_client_connect_info info;
+		memset(&info, 0, sizeof(info));
+
+		std::string stdAddress = TCHAR_TO_UTF8(*strAddress);
+		std::string stdPath = TCHAR_TO_UTF8(*strPath);
+		std::string stdHost = TCHAR_TO_UTF8(*strHost);
+
+		/* Set connection info */
+		info.context = context;
+		info.address = stdAddress.c_str();
+		info.port = iPort;
+		info.ssl_connection = iUseSSL;
+		info.path = stdPath.c_str();
+		info.host = stdHost.c_str();
+		info.origin = stdHost.c_str();
+		info.ietf_version_or_minus_one = -1;
+		info.userdata = this;
+
+		lws = lws_client_connect_via_info(&info);
+
+		if (lws == nullptr)
+		{
+			UE_LOG(LogSocketClusterClient, Error, TEXT("%s : Error trying to create client connecton."), *SCC_FUNC_LINE);
+			return;
+		}
+
 	}
 }
 
-// Disconnect From SocketCluster Server Function.
+/* Subscribe to a channel */
+void USocketClusterClient::Subscribe(const FString& channel)
+{
+	USocketClusterJsonObject* SocketClusterJsonObject = NewObject<USocketClusterJsonObject>();
+	SocketClusterJsonObject->SetStringField(FString(TEXT("event")), FString(TEXT("#subscribe")));
+
+	USocketClusterJsonObject* SocketClusterJsonDataObject = NewObject<USocketClusterJsonObject>();
+	SocketClusterJsonDataObject->SetStringField("channel", channel);
+
+	SocketClusterJsonObject->SetObjectField("data", SocketClusterJsonDataObject);
+
+	Send(SocketClusterJsonObject);
+}
+
+void USocketClusterClient::UnSubscribe(const FString& channel)
+{
+	USocketClusterJsonObject* SocketClusterJsonObject = NewObject<USocketClusterJsonObject>();
+	SocketClusterJsonObject->SetStringField(FString(TEXT("event")), FString(TEXT("#unsubscribe")));
+	SocketClusterJsonObject->SetStringField("data", channel);
+
+	Send(SocketClusterJsonObject);
+}
+
+/* Publish to a channel */
+void USocketClusterClient::Publish(const FString& channel, const FString& data)
+{
+	USocketClusterJsonObject* SocketClusterJsonObject = NewObject<USocketClusterJsonObject>();
+	SocketClusterJsonObject->SetStringField(FString(TEXT("event")), FString(TEXT("#publish")));
+
+	USocketClusterJsonObject* SocketClusterJsonDataObject = NewObject<USocketClusterJsonObject>();
+	SocketClusterJsonDataObject->SetStringField("channel", channel);
+	SocketClusterJsonDataObject->SetStringField("data", data);
+
+	SocketClusterJsonObject->SetObjectField("data", SocketClusterJsonDataObject);
+
+	Send(SocketClusterJsonObject);
+}
+
+void USocketClusterClient::Close(int32 code, USocketClusterJsonObject* data)
+{
+
+	USocketClusterJsonObject* SocketClusterJsonObject = NewObject<USocketClusterJsonObject>();
+	SocketClusterJsonObject->SetStringField(FString(TEXT("event")), FString(TEXT("#disconnect")));
+
+	USocketClusterJsonObject* SocketClusterJsonDataObject = NewObject<USocketClusterJsonObject>();
+	SocketClusterJsonDataObject->SetNumberField("code", code);
+	SocketClusterJsonDataObject->SetObjectField("data", data);
+
+	SocketClusterJsonObject->SetObjectField("data", SocketClusterJsonDataObject);
+
+	UE_LOG(LogSocketClusterClient, Error, TEXT("Disconnect Called : %s"), *SocketClusterJsonObject->EncodeJson());
+
+	Send(SocketClusterJsonObject);
+}
+
 void USocketClusterClient::Disconnect()
 {
-	if (lws != nullptr)
+	if (this->state == ESocketClusterState::OPEN || this->state == ESocketClusterState::CONNECTING)
 	{
-		// Call Disconnect On SocketClusterContext
-		_SocketClusterContext->Disconnect();
+		Close(1000, NULL);
 	}
-}
-
-// Send Emit Event To SocketCluster Server Function.
-void USocketClusterClient::Emit(UObject * WorldContextObject, const FString& event, const FString& data, const FResponseCallback& callback, FLatentActionInfo LatentInfo)
-{
-
-	// Create a JsonObject To Send
-	TSharedPtr<FJsonObject> jobj = MakeShareable(new FJsonObject);
-	jobj->SetStringField("event", event);
-	jobj->SetStringField("data", data);
-		
-	// Get the WorldContext
-	if (UWorld* World = GEngine->GetWorldFromContextObjectChecked(WorldContextObject))
+	else
 	{
-		// Get LatentActionManager
-		FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
-		if (LatentActionManager.FindExistingAction<SocketClusterResponse>(LatentInfo.CallbackTarget, LatentInfo.UUID) == NULL)
-		{
-			// Check if we have a callback event connected
-			if (callback.IsBound())
-			{
-				// At CallID
-				jobj->SetNumberField("cid", cid);
-				// At Latent Action To Manager
-				LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new SocketClusterResponse(cid, callback, LatentInfo));
-				// Increase CallID
-				cid++;
-			}
-			else 
-			{
-				// At Latent Action Without Callback
-				LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new SocketClusterResponse(NULL, callback, LatentInfo));
-			}
-		}
+		this->pendingReconnect = false;
+		this->pendingReconnectTimeout = NULL;
 	}
 	
-	// At the json object to the buffer
-	Send.Add(jobj);
-
 }
 
-void USocketClusterClient::WriteBuffer()
-{
-	while (Send.Num() > 0)
-	{
-		FString jsonstring;
-		TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&jsonstring);
-		FJsonSerializer::Serialize(Send[0].ToSharedRef(), Writer);
 
-		std::string strData = TCHAR_TO_UTF8(*jsonstring);
-		_SocketClusterContext->ws_write_back(lws, strData.c_str(), strData.size());
-		Send.RemoveAt(0);
+void USocketClusterClient::Send(USocketClusterJsonObject* data)
+{
+	if (this->state != ESocketClusterState::OPEN)
+	{
+		// close the connection with error code 1005
+	}
+	else
+	{
+		FString result = this->codec->Encode(data);
+		if (!result.IsEmpty())
+		{
+			UE_LOG(LogSocketClusterClient, Error, TEXT("%s : Added To Buffer : %s"), *SCC_FUNC_LINE, *result);
+			this->Buffer.Add(result);
+		}
 	}
 }

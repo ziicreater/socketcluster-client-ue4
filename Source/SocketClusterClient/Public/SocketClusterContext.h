@@ -1,38 +1,13 @@
-/*
-*
-*	MIT License
-*
-*	Copyright(c) 2018 ZiiCreater LLC
-*
-*	Permission is hereby granted, free of charge, to any person obtaining a copy
-*	of this software and associated documentation files(the "Software"), to deal
-*	in the Software without restriction, including without limitation the rights
-*	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-*	copies of the Software, and to permit persons to whom the Software is
-*	furnished to do so, subject to the following conditions :
-*
-*	The above copyright notice and this permission notice shall be included in all
-*	copies or substantial portions of the Software.
-*
-*	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-*	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-*	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-*	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-*	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-*	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-*	SOFTWARE.
-*
-*/
+// Copyright 2018 ZiiCreater, LLC. All Rights Reserved.
 
 #pragma once
 
-#include "SocketClusterPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "UObject/NoExportTypes.h"
+#include "Tickable.h"
+#include "Sockets.h"
+#include "SocketClusterClient.h"
 #include "SocketClusterContext.generated.h"
-
-typedef struct lws_context sc_lws_context;
-typedef struct lws_protocols sc_lws_protocols;
-
-class USocketClusterClient;
 
 /**
  * 
@@ -41,40 +16,52 @@ UCLASS()
 class SOCKETCLUSTERCLIENT_API USocketClusterContext : public UObject, public FTickableGameObject
 {
 	GENERATED_BODY()
-	
-public:
 
-	// Initialize SocketClusterContext Class.
+	/* Set default settings for SocketCluster Context */
 	USocketClusterContext();
-
-	// Create Context Info
-	void CreateContext();
-
-	// Override BeginDestroy Event.
+	
+	/* Override BeginDestroy Event */
 	virtual void BeginDestroy() override;
 
-	// Override Tick Event.
+	/* Override Tick Event */
 	virtual void Tick(float DeltaTime) override;
 
-	// Override IsTickable Event.
+	/* Override IsTickable Event */
 	virtual bool IsTickable() const override;
 
-	// Override GetStatId Event.
+	/* Override GetStatId Event */
 	virtual TStatId GetStatId() const override;
 
-	// Create a new SocketClusterClient using the Connect event.
-	USocketClusterClient* Connect(const FString& url, const float& ackTimeout);
+	/* Socket lws_context */
+	struct lws_context* context;
 
-	// Disconnect from current SocketClusterContext connection.
-	void Disconnect();
 
-	// WebSocket Service Callback Function
-	static int ws_service_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
+public:
 
-	// Websocket Service WriteBack Function
-	static int ws_write_back(struct lws *wsi, const char *str, int str_size_in);
+	USocketClusterClient * Create(
+		const TArray<FSocketClusterKeyValue>& Query,
+		UObject* Codec,
+		const FString& uri,
+		const bool AutoConnect,
+		const bool AutoReconnect,
+		const float ReconnectInitialDelay,
+		const float ReconnectRandomness,
+		const float ReconnectMultiplier,
+		const float ReconnectMaxDelay,
+		const bool AutoSubscribeOnConnect,
+		const float ConnectTimeout,
+		const float AckTimeout,
+		const bool TimestampRequests,
+		const FString& TimestampParam
+	);
 
-	sc_lws_context* lws_context;
-	sc_lws_protocols* protocols;
-	
+	/* Receive from server function */
+	static int ws_service_callback(struct lws* lws, enum lws_callback_reasons reason, void* user, void* in, size_t len);
+
+	/* Send to server function */
+	static int ws_write_back(lws* wsi, const char* str, int str_size_in);
+
+	/* Create the context of the socket */
+	bool CreateContext();
+
 };

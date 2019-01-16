@@ -2,9 +2,12 @@
 
 #pragma once
 
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
 
-class FSocketClusterModule : public IModuleInterface
+DECLARE_LOG_CATEGORY_EXTERN(LogSocketClusterCodecEngine, Log, All);
+
+class FSocketClusterCodecEngineModule : public IModuleInterface
 {
 public:
 
