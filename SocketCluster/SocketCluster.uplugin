@@ -1,7 +1,8 @@
 {
-	"FileVersion": 3,
+    "FileVersion": 3,
 	"Version": 1,
 	"VersionName": "0.1",
+	"EngineVersion" : "4.20.0",
 	"FriendlyName": "SocketCluster",
 	"Description": "UE4 Client For SocketCluster",
 	"Category": "Networking",
@@ -10,24 +11,55 @@
 	"DocsURL": "https://github.com/ziicreater/socketcluster-client-ue4",
 	"MarketplaceURL": "",
 	"SupportURL": "https://gitter.im/SocketCluster/socketcluster",
+	"EnabledByDefault": true,
 	"CanContainContent": false,
 	"IsBetaVersion": true,
 	"Installed": false,
     "Modules": [
         {
-            "Name": "SocketClusterClient",
-            "Type": "Developer",
-            "LoadingPhase": "Default"
-        },
+			"Name": "SCClient",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Win32"
+			]
+		},
         {
-            "Name": "SocketClusterJson",
-            "Type": "Developer",
-            "LoadingPhase": "Default"
-        },
+			"Name": "SCErrors",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Win32"
+			]
+		},
         {
-            "Name": "SocketClusterCodecEngine",
-            "Type": "Developer",
-            "LoadingPhase": "Default"
-        }
+			"Name": "SCCodecEngine",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Win32"
+			]
+		},
+        {
+			"Name": "SCAuthEngine",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Win32"
+			]
+		},
+        {
+			"Name": "SCJson",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Win32"
+			]
+		}
     ]
 }
