@@ -2,7 +2,7 @@
     "FileVersion": 3,
 	"Version": 1,
 	"VersionName": "0.1",
-	"EngineVersion" : "4.20.0",
+	"EngineVersion" : "4.21.0",
 	"FriendlyName": "SocketCluster",
 	"Description": "UE4 Client For SocketCluster",
 	"Category": "Networking",

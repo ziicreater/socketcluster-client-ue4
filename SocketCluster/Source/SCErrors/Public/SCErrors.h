@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "EngineMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "SCJsonObject.h"
 #include "SCErrors.generated.h"
