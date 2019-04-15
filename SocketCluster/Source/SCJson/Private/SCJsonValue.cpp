@@ -4,6 +4,7 @@
 
 #include "SCJsonValue.h"
 #include "SCJsonConvert.h"
+#include "SCJsonModule.h"
 
 #if PLATFORM_WINDOWS
 #pragma region FJsonValueBinary
