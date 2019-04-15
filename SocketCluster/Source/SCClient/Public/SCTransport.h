@@ -3,27 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
 #include "Runtime/Engine/Public/TimerManager.h"
 #include "Engine/World.h"
-
 #include "SCAuthEngine.h"
-
 #include "SCCodecEngine.h"
-
 #include "SCJsonObject.h"
-
 #include "SCSocket.h"
-
 #include "SCClientSocket.h"
-
 #include "SCEventObject.h"
-
 #include "SCResponse.h"
-
 #include "SCTransport.generated.h"
-
-#define EnumToString(etype, evalue) ( (FindObject<UEnum>(ANY_PACKAGE, TEXT(etype), true) != nullptr) ? FindObject<UEnum>(ANY_PACKAGE, TEXT(etype), true)->GetNameStringByIndex((int32)evalue) : FString("Invalid - are you sure enum uses UENUM() macro?") )
 
 /**
  * The SocketCluster Transport

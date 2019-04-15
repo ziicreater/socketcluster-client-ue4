@@ -2,7 +2,8 @@
 
 #include "SCErrors.h"
 #include "SCErrorsModule.h"
-#include "SCJsonObject.h"
+#include "SCJsonConvert.h"
+#include "SCJsonObject.h" 
 
 
 TMap<int32, FString> USCErrors::socketProtocolErrorStatuses = USCErrors::socketProtocolErrorStatusesLoader();
@@ -45,7 +46,7 @@ USCJsonObject* USCErrors::Error(USCJsonObject* error)
 	USCJsonObject* hydratedError = nullptr;
 	if (error)
 	{
-		ESocketClusterErrors SCError = StringToEnum<ESocketClusterErrors>("ESocketClusterErrors", error->GetStringField("name"));
+		ESocketClusterErrors SCError = USCJsonConvert::StringToEnum<ESocketClusterErrors>("ESocketClusterErrors", error->GetStringField("name"));
 		switch (SCError)
 		{
 			case ESocketClusterErrors::AuthTokenExpiredError:

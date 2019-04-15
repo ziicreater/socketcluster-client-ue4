@@ -2,22 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Tickable.h"
 #include "Sockets.h"
 #include "Delegates/DelegateCombinations.h"
 #include "Runtime/Engine/Public/TimerManager.h"
-
 #include "SCAuthEngine.h"
 #include "SCCodecEngine.h"
-
 #include "SCEventObject.h"
-
 #include "SCChannel.h"
-
 #include "SCResponse.h"
-
 #include "SCErrors.h"
-
 #include "SCClientSocket.generated.h"
 
 class USCTransport;

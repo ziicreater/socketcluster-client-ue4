@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
 #include "SCJsonObject.h"
 #include "SCResponse.generated.h"
 

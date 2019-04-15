@@ -3,19 +3,13 @@
 #pragma once
 
 #include "SCClient.h"
-
-#include "CoreUObject.h"
-#include "Engine.h"
-
 #include "SCAuthEngine.h"
 #include "SCCodecEngine.h"
-
 #include "SCJsonObject.h"
-
 #include "SCClientSocket.h"
 #include "SCClientModule.h"
 
-FString USCClient::GetMultiplexId(const USCJsonObject* options)
+FString USCClient::GetMultiplexId(USCJsonObject* options)
 {
 	FString protocolPrefix = options->GetBoolField("secure") ? "https://" : "http://";
 	FString queryString = "";
@@ -92,7 +86,6 @@ USCClientSocket* USCClient::Create(
 	const FString& AuthTokenName,
 	const bool Multiplex,
 	const bool RejectUnauthorized,
-	const bool CloneData,
 	const bool AutoSubscribeOnConnect,
 	const FString& ChannelPrefix
 )
@@ -138,7 +131,6 @@ USCClientSocket* USCClient::Create(
 	options->SetStringField("timestampParam", TimestampParam);
 	options->SetStringField("authTokenName", AuthTokenName);
 	options->SetBoolField("rejectUnauthorized", RejectUnauthorized);
-	options->SetBoolField("cloneData", CloneData);
 	options->SetBoolField("autoSubscribeOnConnect", AutoSubscribeOnConnect);
 	options->SetStringField("channelPrefix", ChannelPrefix);
 

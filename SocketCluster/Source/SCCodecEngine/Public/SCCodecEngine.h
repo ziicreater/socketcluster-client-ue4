@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "UObject/Interface.h"
+#include "CoreMinimal.h"
 #include "SCJsonObject.h"
 #include "SCCodecEngine.generated.h"
 

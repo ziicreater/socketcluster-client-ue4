@@ -1,24 +1,18 @@
 // Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
 
 #include "SCClientSocket.h"
-#include "Engine.h"
+#include "Runtime/Engine/Classes/Engine/Engine.h"
+#include "Runtime/Core/Public/Misc/Base64.h"
 #include "Runtime/Engine/Classes/Kismet/KismetSystemLibrary.h"
-
 #include "SCJsonObject.h"
-
+#include "SCJsonConvert.h"
 #include "SC_Formatter.h"
-
 #include "SCTransport.h"
-
 #include "SCErrors.h"
-
 #include "SCAuthEngine.h"
 #include "SCDefaultAuthEngine.h"
-
 #include "SCClient.h"
-
 #include "SCChannel.h"
-
 #include "SCClientModule.h"
 
 USCClientSocket::USCClientSocket()
@@ -420,8 +414,8 @@ void USCClientSocket::_changeToUnauthenticatedStateAndClearTokens()
 		authToken = nullptr;
 
 		USCJsonObject* stateChangeData = NewObject<USCJsonObject>();
-		stateChangeData->SetStringField("oldState", EnumToString("ESocketClusterAuthState", oldState));
-		stateChangeData->SetStringField("newState", EnumToString("ESocketClusterAuthState", authState));
+		stateChangeData->SetStringField("oldState", USCJsonConvert::EnumToString<ESocketClusterAuthState>("ESocketClusterAuthState", oldState));
+		stateChangeData->SetStringField("newState", USCJsonConvert::EnumToString<ESocketClusterAuthState>("ESocketClusterAuthState", authState));
 
 		OnAuthStateChange.Broadcast(stateChangeData);
 		OnDeauthenticate.Broadcast(oldSignedToken);
@@ -439,8 +433,8 @@ void USCClientSocket::_changeToAuthenticatedState(FString token)
 		authState = ESocketClusterAuthState::AUTHENTICATED;
 
 		USCJsonObject* stateChangeData = NewObject<USCJsonObject>();
-		stateChangeData->SetStringField("oldState", EnumToString("ESocketClusterAuthState", oldState));
-		stateChangeData->SetStringField("newState", EnumToString("ESocketClusterAuthState", authState));
+		stateChangeData->SetStringField("oldState", USCJsonConvert::EnumToString<ESocketClusterAuthState>("ESocketClusterAuthState", oldState));
+		stateChangeData->SetStringField("newState", USCJsonConvert::EnumToString<ESocketClusterAuthState>("ESocketClusterAuthState", authState));
 		stateChangeData->SetStringField("signedAuthToken", signedAuthToken);
 		stateChangeData->SetObjectField("authToken", authToken);
 
@@ -588,7 +582,7 @@ void USCClientSocket::authenticate(FString token, TFunction<void(USCJsonObject*,
 		else
 		{
 			authStatus = NewObject<USCJsonObject>();
-			authStatus->SetStringField("isAuthenticated", EnumToString("ESocketClusterAuthState", authState));
+			authStatus->SetStringField("isAuthenticated", USCJsonConvert::EnumToString<ESocketClusterAuthState>("ESocketClusterAuthState", authState));
 			authStatus->SetObjectField("authError", nullptr);
 		}
 		if (err)
@@ -1074,8 +1068,8 @@ void USCClientSocket::_triggerChannelSubscribe(USCChannel* channel, USCJsonObjec
 
 		USCJsonObject* stateChangeData = NewObject<USCJsonObject>();
 		stateChangeData->SetStringField("channel", channelName);
-		stateChangeData->SetStringField("oldState", EnumToString("ESocketClusterChannelState", oldState));
-		stateChangeData->SetStringField("newState", EnumToString("ESocketClusterChannelState", channel->_state));
+		stateChangeData->SetStringField("oldState", USCJsonConvert::EnumToString<ESocketClusterChannelState>("ESocketClusterChannelState", oldState));
+		stateChangeData->SetStringField("newState", USCJsonConvert::EnumToString<ESocketClusterChannelState>("ESocketClusterChannelState", channel->_state));
 		stateChangeData->SetObjectField("subscriptionOptions", subscriptionOptions);
 
 		channel->OnChannelSubscribeStateChange.Broadcast(stateChangeData);
@@ -1213,8 +1207,8 @@ void USCClientSocket::_triggerChannelUnsubscribe(USCChannel* channel, ESocketClu
 	{
 		USCJsonObject* stateChangeData = NewObject<USCJsonObject>();
 		stateChangeData->SetStringField("channel", channelName);
-		stateChangeData->SetStringField("oldState", EnumToString("ESocketClusterChannelState", oldState));
-		stateChangeData->SetStringField("newState", EnumToString("ESocketClusterChannelState", channel->_state));
+		stateChangeData->SetStringField("oldState", USCJsonConvert::EnumToString<ESocketClusterChannelState>("ESocketClusterChannelState", oldState));
+		stateChangeData->SetStringField("newState", USCJsonConvert::EnumToString<ESocketClusterChannelState>("ESocketClusterChannelState", channel->_state));
 
 		channel->OnChannelSubscribeStateChange.Broadcast(stateChangeData);
 		channel->OnChannelUnSubscribe.Broadcast(channelName);

@@ -3,8 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/Interface.h"
-#include "Delegates/DelegateCombinations.h"
 #include "SCAuthEngine.generated.h"
 
 class USCJsonObject;

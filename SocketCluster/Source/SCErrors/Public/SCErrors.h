@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "EngineMinimal.h"
-#include "UObject/NoExportTypes.h"
+#include "CoreMinimal.h"
 #include "SCJsonObject.h"
 #include "SCErrors.generated.h"
 
@@ -29,17 +28,6 @@ enum class ESocketClusterErrors : uint8
 	ProcessExitError,
 	UnknownError
 };
-
-template <typename EnumType>
-static FORCEINLINE EnumType StringToEnum(const FString& EnumName, const FString& String)
-{
-	UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, *EnumName, true);
-	if (!Enum)
-	{
-		return EnumType(0);
-	}
-	return (EnumType)Enum->GetIndexByName(FName(*String));
-}
 
 /**
  * 

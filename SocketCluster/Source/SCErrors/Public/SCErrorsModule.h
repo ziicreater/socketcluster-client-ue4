@@ -1,17 +1,14 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Modules/ModuleManager.h"
+#include "Runtime/Core/Public/Modules/ModuleManager.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSCErrors, Log, All);
 
 class FSCErrorsModule : public IModuleInterface
 {
 public:
-
-	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 };

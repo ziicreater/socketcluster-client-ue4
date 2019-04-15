@@ -1,23 +1,47 @@
+// Modifications Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
+// Modifications Copyright 2018-current Getnamo. All Rights Reserved
 // Copyright 2014 Vladimir Alyamkin. All Rights Reserved.
 
 #include "SCJsonValue.h"
-#include "SCJsonObject.h"
-#include "SCJsonModule.h"
+#include "SCJsonConvert.h"
 
-#include "Runtime/Launch/Resources/Version.h"
-
-#if ENGINE_MINOR_VERSION >= 15
-#include "CoreMinimal.h"
-#include "EngineDefines.h"
-#include "Engine/Engine.h"
-#include "UObject/Object.h"
-#include "UObject/ScriptMacros.h"
-#else
-#include "CoreUObject.h"
-#include "Engine.h"
+#if PLATFORM_WINDOWS
+#pragma region FJsonValueBinary
 #endif
 
-#include "Json.h"
+
+TArray<uint8> FJsonValueBinary::AsBinary(const TSharedPtr<FJsonValue>& InJsonValue)
+{
+	if (FJsonValueBinary::IsBinary(InJsonValue))
+	{
+		TSharedPtr<FJsonValueBinary> BinaryValue = StaticCastSharedPtr<FJsonValueBinary>(InJsonValue);
+		return BinaryValue->AsBinary();
+	}
+	else
+	{
+		TArray<uint8> EmptyArray;
+		return EmptyArray;
+	}
+}
+
+
+bool FJsonValueBinary::IsBinary(const TSharedPtr<FJsonValue>& InJsonValue)
+{
+	//use our hackery to determine if we got a binary string
+	bool IgnoreBool;
+	return !InJsonValue->TryGetBool(IgnoreBool);
+}
+
+#if PLATFORM_WINDOWS
+#pragma endregion FJsonValueBinary
+#pragma region USCJsonValue
+#endif
+
+USCJsonValue::USCJsonValue(const class FObjectInitializer& PCIP)
+	: Super(PCIP)
+{
+
+}
 
 USCJsonValue* USCJsonValue::ConstructJsonValueNumber(UObject* WorldContextObject, float Number)
 {
@@ -66,9 +90,20 @@ USCJsonValue* USCJsonValue::ConstructJsonValueArray(UObject* WorldContextObject,
 	return NewValue;
 }
 
-USCJsonValue* USCJsonValue::ConstructJsonValueObject(UObject* WorldContextObject, USCJsonObject *JsonObject)
+USCJsonValue* USCJsonValue::ConstructJsonValueObject(USCJsonObject *JsonObject, UObject* WorldContextObject)
 {
 	TSharedPtr<FJsonValue> NewVal = MakeShareable(new FJsonValueObject(JsonObject->GetRootObject()));
+
+	USCJsonValue* NewValue = NewObject<USCJsonValue>();
+	NewValue->SetRootValue(NewVal);
+
+	return NewValue;
+}
+
+
+USCJsonValue* USCJsonValue::ConstructJsonValueBinary(UObject* WorldContextObject, TArray<uint8> ByteArray)
+{
+	TSharedPtr<FJsonValue> NewVal = MakeShareable(new FJsonValueBinary(ByteArray));
 
 	USCJsonValue* NewValue = NewObject<USCJsonValue>();
 	NewValue->SetRootValue(NewVal);
@@ -79,6 +114,17 @@ USCJsonValue* USCJsonValue::ConstructJsonValueObject(UObject* WorldContextObject
 USCJsonValue* ConstructJsonValue(UObject* WorldContextObject, const TSharedPtr<FJsonValue>& InValue)
 {
 	TSharedPtr<FJsonValue> NewVal = InValue;
+
+	USCJsonValue* NewValue = NewObject<USCJsonValue>();
+	NewValue->SetRootValue(NewVal);
+
+	return NewValue;
+}
+
+
+USCJsonValue* USCJsonValue::ValueFromJsonString(UObject* WorldContextObject, const FString& StringValue)
+{
+	TSharedPtr<FJsonValue> NewVal = USCJsonConvert::JsonStringToJsonValue(StringValue);
 
 	USCJsonValue* NewValue = NewObject<USCJsonValue>();
 	NewValue->SetRootValue(NewVal);
@@ -100,38 +146,44 @@ void USCJsonValue::SetRootValue(TSharedPtr<FJsonValue>& JsonValue)
 //////////////////////////////////////////////////////////////////////////
 // FJsonValue API
 
-EVaJson::Type USCJsonValue::GetType() const
+ESCJson::Type USCJsonValue::GetType() const
 {
 	if (!JsonVal.IsValid())
 	{
-		return EVaJson::None;
+		return ESCJson::None;
 	}
 
 	switch (JsonVal->Type)
 	{
 	case EJson::None:
-		return EVaJson::None;
+		return ESCJson::None;
 
 	case EJson::Null:
-		return EVaJson::Null;
+		return ESCJson::Null;
 
 	case EJson::String:
-		return EVaJson::String;
-
+		if (FJsonValueBinary::IsBinary(JsonVal))
+		{
+			return ESCJson::Binary;
+		}
+		else
+		{
+			return ESCJson::String;
+		}
 	case EJson::Number:
-		return EVaJson::Number;
+		return ESCJson::Number;
 
 	case EJson::Boolean:
-		return EVaJson::Boolean;
+		return ESCJson::Boolean;
 
 	case EJson::Array:
-		return EVaJson::Array;
+		return ESCJson::Array;
 
 	case EJson::Object:
-		return EVaJson::Object;
+		return ESCJson::Object;
 
 	default:
-		return EVaJson::None;
+		return ESCJson::None;
 	}
 }
 
@@ -170,7 +222,7 @@ FString USCJsonValue::GetTypeString() const
 	}
 }
 
-bool USCJsonValue::IsNull() const
+bool USCJsonValue::IsNull() const 
 {
 	if (!JsonVal.IsValid())
 	{
@@ -199,7 +251,15 @@ FString USCJsonValue::AsString() const
 		return FString();
 	}
 
-	return JsonVal->AsString();
+	//Auto-convert non-strings instead of getting directly
+	if (JsonVal->Type != EJson::String)
+	{
+		return EncodeJson();
+	}
+	else
+	{
+		return JsonVal->AsString();
+	}
 }
 
 bool USCJsonValue::AsBool() const
@@ -252,6 +312,57 @@ USCJsonObject* USCJsonValue::AsObject()
 }
 
 
+TArray<uint8> USCJsonValue::AsBinary()
+{
+	if (!JsonVal.IsValid())
+	{
+		ErrorMessage(TEXT("Binary"));
+		TArray<uint8> ByteArray;
+		return ByteArray;
+	}
+	
+	//binary object pretending & starts with non-json format? it's our disguise binary
+	if (JsonVal->Type == EJson::String)
+	{
+		//it's a legit binary
+		if (FJsonValueBinary::IsBinary(JsonVal))
+		{
+			//Valid binary available
+			return FJsonValueBinary::AsBinary(JsonVal);
+		}
+
+		//It's a string, decode as if hex encoded binary
+		else
+		{
+			const FString& HexString = JsonVal->AsString();
+
+			TArray<uint8> ByteArray;
+			ByteArray.AddUninitialized(HexString.Len() / 2);
+
+			bool DidConvert = FString::ToHexBlob(HexString, ByteArray.GetData(), ByteArray.Num());
+			
+			//Empty our array if conversion failed
+			if (!DidConvert)
+			{
+				ByteArray.Empty();
+			}
+			return ByteArray;
+		}
+	}
+	//Not a binary nor binary string, return empty array
+	else
+	{
+		//Empty array
+		TArray<uint8> ByteArray;
+		return ByteArray;
+	}
+}
+
+FString USCJsonValue::EncodeJson() const
+{ 
+	return USCJsonConvert::ToJsonString(JsonVal);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Helpers
 
@@ -259,3 +370,7 @@ void USCJsonValue::ErrorMessage(const FString& InType) const
 {
 	UE_LOG(LogSCJson, Error, TEXT("Json Value of type '%s' used as a '%s'."), *GetTypeString(), *InType);
 }
+
+#if PLATFORM_WINDOWS
+#pragma endregion USCJsonValue
+#endif

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "SCCodecEngine.h"
 #include "SC_Formatter.generated.h"
 

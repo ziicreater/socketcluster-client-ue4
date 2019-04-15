@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "SCClientSocket.h"
 #include "SCAuthEngine.h"
@@ -21,7 +20,7 @@ class SCCLIENT_API USCClient : public UBlueprintFunctionLibrary
 
 private:
 
-	static FString GetMultiplexId(const USCJsonObject* options);
+	static FString GetMultiplexId(USCJsonObject* options);
 
 	static bool isUrlSecure(const FString& hostname);
 
@@ -66,7 +65,6 @@ public:
 			const FString& AuthTokenName = FString(TEXT("socketCluster.authToken")),
 			const bool Multiplex = true,
 			const bool RejectUnauthorized = true,
-			const bool CloneData = false,
 			const bool AutoSubscribeOnConnect = true,
 			const FString& ChannelPrefix = FString(TEXT(""))
 		);

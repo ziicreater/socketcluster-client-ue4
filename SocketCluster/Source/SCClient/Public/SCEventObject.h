@@ -3,8 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
-#include "Delegates/DelegateCombinations.h"
 #include "Runtime/Engine/Public/TimerManager.h"
 #include "SCJsonObject.h"
 #include "SCEventObject.generated.h"
