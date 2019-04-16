@@ -40,7 +40,7 @@ public:
 		static void Destroy(USCClientSocket* Socket);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Create", WorldContext = "WorldContextObject", AutoCreateRefTerm = "Query", 
-		AdvancedDisplay = "Query, CodecEngine, AuthEngine, AckTimeOut, AutoConnect, AutoReconnect, ReconnectInitialDelay, ReconnectRandomness, ReconnectMultiplier, ReconnectMaxDelay, PubSubBatchDuration, ConnectTimeout, PingTimeoutDisabled, TimestampRequests, TimestampParam, AuthTokenName, RejectUnauthorized, CloneData, AutoSubscribeOnConnect, ChannelPrefix"), Category = "SocketCluster|Client")
+		AdvancedDisplay = "Query, AuthEngine, CodecEngine, ProtocolVersion, AckTimeOut, AutoConnect, AutoReconnect, ReconnectInitialDelay, ReconnectRandomness, ReconnectMultiplier, ReconnectMaxDelay, PubSubBatchDuration, ConnectTimeout, PingTimeoutDisabled, TimestampRequests, TimestampParam, AuthTokenName, Multiplex, RejectUnauthorized, CloneData, AutoSubscribeOnConnect, ChannelPrefix"), Category = "SocketCluster|Client")
 		static USCClientSocket* Create(
 			const UObject* WorldContextObject,
 			TArray<FSocketClusterKeyValue> Query,
@@ -50,6 +50,7 @@ public:
 			const bool Secure = false,
 			const int32 Port = 80,
 			const FString& Path = FString(TEXT("/socketcluster/")),
+			const ESocketClusterProtocolVersion ProtocolVersion = ESocketClusterProtocolVersion::SocketCluster,
 			const float AckTimeOut = 10.0f,
 			const bool AutoConnect = true,
 			const bool AutoReconnect = true,

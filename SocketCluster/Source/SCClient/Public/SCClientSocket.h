@@ -17,7 +17,6 @@
 
 class USCTransport;
 
-
 USTRUCT(BlueprintType)
 struct FSocketClusterKeyValue
 {
@@ -28,6 +27,14 @@ struct FSocketClusterKeyValue
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString value;
+};
+
+/** The Protocol Version of the client */
+UENUM(BlueprintType, DisplayName = "SocketClusterProtocolVersion")
+enum class ESocketClusterProtocolVersion : uint8
+{
+	SocketCluster,
+	ASyngular
 };
 
 /** The states of the socket */

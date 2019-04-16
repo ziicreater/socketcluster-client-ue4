@@ -245,13 +245,21 @@ void USCTransport::_handleEventObject(USCJsonObject* obj, FString message)
 void USCTransport::_onMessage(FString message)
 {
 	onmessage(message);
-
-	if (message.Equals("#1"))
+	
+	if (options->GetIntegerField("protocolVersion") == 0 && message.Equals("#1"))
 	{
 		_resetPingTimeout();
 		if (socket->readyState == ESocketClusterState::OPEN)
 		{
 			send("#2");
+		}
+	}
+	else if(options->GetIntegerField("protocolVersion") == 1 && message.Equals(""))
+	{
+		_resetPingTimeout();
+		if (socket->readyState == ESocketClusterState::OPEN)
+		{
+			send("");
 		}
 	}
 	else
