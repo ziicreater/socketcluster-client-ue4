@@ -13,7 +13,7 @@ class USCTransport;
 /**
 * The SocketCluster Response
 */
-UCLASS(Blueprintable, BlueprintType, DisplayName = "SocketCluster Response")
+UCLASS(Blueprintable, BlueprintType, DisplayName = "SCResponse")
 class SCCLIENT_API USCResponse : public UObject
 {
 	GENERATED_BODY()

@@ -21,7 +21,7 @@ enum class ESocketClusterChannelState : uint8
 /**
  * The SocketCluster Channel
  */
-UCLASS(Blueprintable, BlueprintType, DisplayName = "SocketCluster Channel")
+UCLASS(Blueprintable, BlueprintType, DisplayName = "SCChannel")
 class SCCLIENT_API USCChannel : public UObject
 {
 	GENERATED_BODY()
