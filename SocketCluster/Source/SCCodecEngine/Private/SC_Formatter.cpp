@@ -3,20 +3,13 @@
 #include "SC_Formatter.h"
 
 
-FString USC_Formatter::encode(USCJsonObject* object)
+FString USC_Formatter::encode(TSharedPtr<FJsonValue> object)
 {
-	return object->EncodeJson();
+	return USCJsonConvert::ToJsonString(object);
 }
 
-USCJsonObject* USC_Formatter::decode(const FString& input)
+TSharedPtr<FJsonValue> USC_Formatter::decode(const FString& input)
 {
-	USCJsonObject* object = NewObject<USCJsonObject>();
-	if (!input.IsEmpty() && object->DecodeJson(input))
-	{
-		return object;
-	}
-	else
-	{
-		return nullptr;
-	}
+	TSharedPtr<FJsonValue> JsonValue = USCJsonConvert::JsonStringToJsonValue(input);
+	return JsonValue;
 }

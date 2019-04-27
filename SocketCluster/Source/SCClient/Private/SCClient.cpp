@@ -5,28 +5,35 @@
 #include "SCClient.h"
 #include "SCAuthEngine.h"
 #include "SCCodecEngine.h"
+#include "SCJsonConvert.h"
+#include "SCJsonValue.h"
 #include "SCJsonObject.h"
 #include "SCClientSocket.h"
 #include "SCClientModule.h"
 
-FString USCClient::GetMultiplexId(USCJsonObject* options)
+FString USCClient::GetMultiplexId(TSharedPtr<FJsonObject> options)
 {
 	FString protocolPrefix = options->GetBoolField("secure") ? "https://" : "http://";
 	FString queryString = "";
-	if (options->GetObjectArrayField("query").Num() > 0)
+	if (options->HasField("query") && options->GetObjectField("query")->Values.Num() > 0)
 	{
-		for (auto& it : options->GetObjectArrayField("query"))
+		for (auto Pair : options->GetObjectField("query")->Values)
 		{
-			if (queryString.IsEmpty())
+			TSharedPtr<FJsonValue> Value = Pair.Value;
+			if (Value->Type == EJson::String)
 			{
-				queryString.Append(TEXT("?")).Append(it->GetStringField("key")).Append(TEXT("=")).Append(it->GetStringField("value"));
-			}
-			else
-			{
-				queryString.Append(TEXT("&")).Append(it->GetStringField("key")).Append(TEXT("=")).Append(it->GetStringField("value"));
+				if (queryString.IsEmpty())
+				{
+					queryString.Append(TEXT("?")).Append(Pair.Key).Append(TEXT("=")).Append(Value->AsString());
+				}
+				else
+				{
+					queryString.Append(TEXT("&")).Append(Pair.Key).Append(TEXT("=")).Append(Value->AsString());
+				}
 			}
 		}
 	}
+	
 	FString host = options->GetStringField("hostname") + ":" + FString::FromInt(options->GetIntegerField("port"));
 	return protocolPrefix + host + options->GetStringField("path") + queryString;
 }
@@ -51,7 +58,7 @@ TMap<FString, USCClientSocket*> USCClient::Clients()
 
 FString USCClient::Version()
 {
-	return FString("14.2.1");
+	return FString("0.1 Beta");
 }
 
 void USCClient::Destroy(USCClientSocket* Socket)
@@ -64,7 +71,7 @@ void USCClient::Destroy(USCClientSocket* Socket)
 
 USCClientSocket* USCClient::Create(
 	const UObject* WorldContextObject,
-	TArray<FSocketClusterKeyValue> Query,
+	USCJsonObject* Query,
 	TSubclassOf<USCAuthEngine> AuthEngine,
 	TSubclassOf<USCCodecEngine> CodecEngine,
 	const FString& Hostname,
@@ -92,30 +99,25 @@ USCClientSocket* USCClient::Create(
 )
 {
 
-	USCJsonObject* options = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> options = MakeShareable(new FJsonObject);
 
-	TArray<USCJsonObject*> query;
-	if (Query.Num() > 0)
+	TSharedPtr<FJsonObject> query = MakeShareable(new FJsonObject);
+	if (Query != nullptr)
 	{
-		for (auto& it : Query)
-		{
-			USCJsonObject* item = NewObject<USCJsonObject>();
-			item->SetStringField("key", it.key);
-			item->SetStringField("value", it.value);
-			query.Add(item);
-		}
+		query = Query->GetRootObject();
 	}
-	options->SetObjectArrayField("query", query);
+	
+	options->SetObjectField("query", query);
 	options->SetStringField("hostname", Hostname);
 	options->SetBoolField("secure", Secure);
-	options->SetIntegerField("port", GetPort(Port, Secure, isUrlSecure(Hostname)));
+	options->SetNumberField("port", GetPort(Port, Secure, isUrlSecure(Hostname)));
 	options->SetStringField("path", Path);
-	options->SetIntegerField("protocolVersion", (uint8)ProtocolVersion);
+	options->SetNumberField("protocolVersion", (uint8)ProtocolVersion);
 	options->SetNumberField("ackTimeout", AckTimeOut);
 	options->SetBoolField("autoConnect", AutoConnect);
 	options->SetBoolField("autoReconnect", AutoReconnect);
 
-	USCJsonObject* AutoReconnectOptions = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> AutoReconnectOptions = MakeShareable(new FJsonObject);
 	AutoReconnectOptions->SetNumberField("initialDelay", ReconnectInitialDelay);
 	AutoReconnectOptions->SetNumberField("randomness", ReconnectRandomness);
 	AutoReconnectOptions->SetNumberField("multiplier", ReconnectMultiplier);
@@ -123,7 +125,7 @@ USCClientSocket* USCClient::Create(
 	options->SetObjectField("autoReconnectOptions", AutoReconnectOptions);
 
 	/* Currently not used*/
-	USCJsonObject* SubscriptionRetryOptions = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> SubscriptionRetryOptions = MakeShareable(new FJsonObject);
 	options->SetObjectField("subscriptionRetryOptions", SubscriptionRetryOptions);
 	
 	options->SetNumberField("pubSubBatchDuration", PubSubBatchDuration);

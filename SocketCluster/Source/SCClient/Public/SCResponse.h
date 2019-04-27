@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SCJsonConvert.h"
 #include "SCJsonObject.h"
+#include "SCJsonValue.h"
 #include "SCResponse.generated.h"
 
 class USCTransport;
@@ -11,7 +13,7 @@ class USCTransport;
 /**
 * The SocketCluster Response
 */
-UCLASS()
+UCLASS(Blueprintable, BlueprintType, DisplayName = "SocketCluster Response")
 class SCCLIENT_API USCResponse : public UObject
 {
 	GENERATED_BODY()
@@ -27,16 +29,18 @@ public:
 
 	void create(USCTransport* transport, int32 cid);
 
-	void _respond(USCJsonObject* responseData);
+	void _respond(TSharedPtr<FJsonValue> responseData);
 
-	void end(USCJsonObject* data = nullptr);
+	void end(TSharedPtr<FJsonValue> data = nullptr);
 
-	void error(USCJsonObject* error, USCJsonObject* data = nullptr);
+	void error(TSharedPtr<FJsonValue> error, TSharedPtr<FJsonValue> data = nullptr);
 
-	void callback(USCJsonObject* error, USCJsonObject* data);
+	void callback(TSharedPtr<FJsonValue> error, TSharedPtr<FJsonValue> data);
+
+	void res(TSharedPtr<FJsonValue> error = nullptr, TSharedPtr<FJsonValue> data = nullptr);
 
 	/** Send a response back to the server */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Res", AutoCreateRefTerm = "error, data"), Category = "SocketCluster|Client")
-		void res(USCJsonObject* error, USCJsonObject* data);
+		void resBlueprint(USCJsonValue* error, USCJsonValue* data);
 		
 };

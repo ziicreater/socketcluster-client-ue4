@@ -2,16 +2,17 @@
 
 using UnrealBuildTool;
 
-public class SCErrors : ModuleRules
+public class SCSocket : ModuleRules
 {
-	public SCErrors(ReadOnlyTargetRules Target) : base(Target)
+	public SCSocket(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-			
+		
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
+				// ... add other public dependencies that you statically link with here ...
 			}
 			);
 			
@@ -24,6 +25,11 @@ public class SCErrors : ModuleRules
                 "Json",
                 "JsonUtilities",
                 "SCJson",
+                "SCErrors",
+				"libWebSockets",
+				"OpenSSL",
+				"zlib",
+				// ... add private dependencies that you statically link with here ...	
 			}
 			);
 	}

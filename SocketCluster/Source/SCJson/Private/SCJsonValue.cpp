@@ -3,6 +3,7 @@
 // Copyright 2014 Vladimir Alyamkin. All Rights Reserved.
 
 #include "SCJsonValue.h"
+#include "SCJsonObject.h"
 #include "SCJsonConvert.h"
 #include "SCJsonModule.h"
 

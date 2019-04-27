@@ -52,6 +52,8 @@ public:
 	//typically from callbacks
 	static class USCJsonValue* ToSCJsonValue(const TArray<TSharedPtr<FJsonValue>>& JsonValueArray);
 
+	static class USCJsonObject* ToSCJsonObject(const TSharedPtr<FJsonObject>& JsonObject);
+
 	//Convenience overrides for JsonValues
 	static TSharedPtr<FJsonValue> ToJsonValue(const TSharedPtr<FJsonObject>& JsonObject);
 	static TSharedPtr<FJsonValue> ToJsonValue(const FString& StringValue);

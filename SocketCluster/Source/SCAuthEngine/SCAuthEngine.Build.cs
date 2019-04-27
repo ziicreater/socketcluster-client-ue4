@@ -22,6 +22,8 @@ public class SCAuthEngine : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
+                "Json",
+                "JsonUtilities",
                 "SCJson",
                 "SCErrors",
 				// ... add private dependencies that you statically link with here ...	

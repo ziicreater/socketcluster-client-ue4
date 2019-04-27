@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Tickable.h"
-#include "Sockets.h"
-#include "Delegates/DelegateCombinations.h"
 #include "Runtime/Engine/Public/TimerManager.h"
 #include "SCAuthEngine.h"
 #include "SCCodecEngine.h"
@@ -13,21 +11,10 @@
 #include "SCChannel.h"
 #include "SCResponse.h"
 #include "SCErrors.h"
+#include "SCJsonValue.h"
 #include "SCClientSocket.generated.h"
 
 class USCTransport;
-
-USTRUCT(BlueprintType)
-struct FSocketClusterKeyValue
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString key;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString value;
-};
 
 /** The Protocol Version of the client */
 UENUM(BlueprintType, DisplayName = "SocketClusterProtocolVersion")
@@ -76,35 +63,10 @@ enum class ESocketClusterLocalEvents : uint8
 	subscribeRequest
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSCOnConnecting);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSCOnConnect, const USCJsonObject*, Status);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSCOnDisconnect, const int32, Code, const FString&, Data);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSCOnConnectAbort, const int32, Code, const FString&, Data);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSCOnClose, const int32, Code, const FString&, Data);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSCOnError, const USCJsonObject*, Error);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSCOnAuthenticate, const FString&, SignedAuthToken);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSCOnDeauthenticate, const FString&, OldSignedToken);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSCOnAuthStateChange, const USCJsonObject*, StateChangeData);
-
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSCOnRemoveAuthToken, const FString&, OldToken);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSCOnSubscribeStateChange, const USCJsonObject*, StateChangeData);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSCOnSubscribe, const FString&, ChannelName, const USCJsonObject*, SubscriptionOptions);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FSCOnSubscribeFail, const USCJsonObject*, Error, const FString&, ChannelName, const USCJsonObject*, SubscriptionOptions);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSCOnSubscribeRequest, const FString&, ChannelName, const USCJsonObject*, SubscriptionOptions);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSCOnUnSubscribe, const FString&, ChannelName);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSCOnRaw, const FString&, Message);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSCOnMessage, const FString&, Message);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSCOnKickOut, const FString&, Message, const FString&, ChannelName);
-
-
 /**
 * The SocketCluster Client Socket
 */
-UCLASS(Blueprintable, BlueprintType, DisplayName = "SocketCluster Client Socket")
+UCLASS(Blueprintable, BlueprintType, DisplayName = "SCClientSocket")
 class SCCLIENT_API USCClientSocket : public UObject
 {
 
@@ -114,171 +76,122 @@ class SCCLIENT_API USCClientSocket : public UObject
 
 	virtual void BeginDestroy() override;
 
-	//////////////////////////////////////////////////////////////////////////
-	// Variables
-	//////////////////////////////////////////////////////////////////////////
-
-	/** The current CodecEngine used */
+	/** The current CodecEngine */
 	UPROPERTY()
 	USCCodecEngine* codec;
 
-	/** The current AuthEngine used */
+	/** The current AuthEngine */
 	UPROPERTY()
 	USCAuthEngine* auth;
 
-	/** The current Transport */
+	/** The current Transport Object */
 	UPROPERTY()
 	USCTransport* transport;
 
+	/** The current client id */
 	FString clientId;
 
-	/** A boolean wich indicates if this client is active */
+	/** The current state of the client */
 	bool active;
 
 	/** The socket id */
 	FString id;
 
-	/** The current state of the socket */
+	/**
+	* The current state of the socket as a enum
+	* - CONNECTING
+	* - OPEN
+	* - CLOSED
+	*/
 	ESocketClusterState state;
 
-	/** The last known authentication state of the socket */
+	/**
+	* The last known authentication state of the socket as a enum
+	* - AUTHENTICATED
+	* - UNAUTHENTICATED
+	*/
 	ESocketClusterAuthState authState;
 
-	/** The signed auth token currently associated with the socket (encoded and signed in the JWT format) */
+	/** 
+	* The signed auth token currently associated with the socket (encoded and signed in the JWT format). 
+	* This property will be a empty string if no token is associated with this socket.
+	*/
 	FString signedAuthToken;
 
-	/** The auth token currently associated with the socket */
-	UPROPERTY()
-	USCJsonObject* authToken;
+	/** 
+	* The auth token (as a plain FJsonValue) currently associated with the socket. 
+	* This property will be a FJsonValueNull if no token is associated with this socket.
+	*/
+	TSharedPtr<FJsonValue> authToken;
 
-	/** The auth token name currently associated with the socket */
+	/** The name of the JWT auth token (provided to the authEngine - By default this is the Storage variable name); defaults to 'socketCluster.authToken'. */
 	FString authTokenName;
 
-	/** A boolean which indicates if the socket is about to be automatically reconnected */
+	/** The current state of reconnection */
 	bool pendingReconnect;
 
-	/** The number of milliseconds until the next reconnection attempt is executed */
+	/** This is the timeout for the reconnect event in milliseconds */
 	float pendingReconnectTimeout;
 
-	/** A boolean which indicates if we are currently preparing for pending subscriptions */
+	/** The current state of the pending subscriptions */
 	bool preparingPendingSubscriptions;
 
-	/** A float for the Timeout of the connect event */
+	/** This is the timeout for the connect event in milliseconds */
 	float connectTimeout;
 
-	/** A float for the Timeout of the callback event */
+	/** This is the timeout for getting a response to a SCSocket emit event (when a callback is provided) in milliseconds */
 	float ackTimeout;
 
-	/** */
+	/** The prefix of the channel names */
 	FString channelPrefix;
 
-	/** How many seconds to wait without receiving a ping before closing the socket */
+	/** This is the timeout for the ping responses from the server in milliseconds */
 	float pingTimeout;
 
-	/** A boolean which indicates if pingTimeout should be disabled */
+	/** Whether or not the client socket should disconnect itself when the ping times out */
 	bool pingTimeoutDisabled;
 
-	/** The number of automatic connect/reconnect attempts which the socket has executed */
+	/** The connect attempts */
 	int32 connectAttempts;
 
-	/** An array which holds all the channels (USCChannel) attached to this socket */
+	/** List of channels current associated with this socket */
 	TMap<FString, USCChannel*> channels;
 
-	/** An array wich holds the emit event buffer */
+	/** The buffer for the emit events */
 	TArray<USCEventObject*> _emitBuffer;
 
-	/** An key/value for the private event handler map*/
-	TMap<FString, TFunction<void(USCJsonObject*, USCResponse*)>> _privateEventHandlerMap;
+	/** List of private events handled internally */
+	TMap<FString, TFunction<void(TSharedPtr<FJsonObject>, USCResponse*)>> _privateEventHandlerMap;
 
-	TMap<FString, TFunction<void(USCJsonObject*, USCResponse*)>> Emitter;
+	/** Event emitter to handle events */
+	TMultiMap<FString, TFunction<void(TSharedPtr<FJsonValue>, USCResponse*)>> Emitter;
 	
-	TMultiMap<FString, TFunction<void(USCJsonObject*)>> _channelEmitter;
+	/** Event emitter to handle channel events */
+	TMultiMap<FString, TFunction<void(TSharedPtr<FJsonValue>)>> _channelEmitter;
 
+	/** List of private events which are prohibited and for internal use only */
 	TMap<FString, int32> _localEvents;
 
-	//TMap<FString, FChannelHandler> _channelEmitter;
-	//TMultiMap<FString, FChannelHandler> _channelEmitter;
-	
-	//TMultiMap<FString, FEventHandler> _eventEmitter;
+	/** The current options associated with this client socket */
+	TSharedPtr<FJsonObject> options;
 
-	/** An object with all options */
-	UPROPERTY()
-	USCJsonObject* options;
-
-	/** The current call id */
+	/** The current callback id */
 	int32 _cid;
 
-	//////////////////////////////////////////////////////////////////////////
-	// Timers
-	//////////////////////////////////////////////////////////////////////////
-
-	FTimerDelegate _eventTimeout;
-
+	/** The reconnect timeout reference */
 	FTimerDelegate _reconnectTimeoutRef;
+
+	/** The reconnect timeout handler */
 	FTimerHandle _reconnectTimeoutHandle;
 
 public:
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnConnecting OnConnecting;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnConnect OnConnect;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnDisconnect OnDisconnect;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnConnectAbort OnConnectAbort;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnClose OnClose;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnError OnError;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnAuthenticate OnAuthenticate;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnDeauthenticate OnDeauthenticate;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnAuthStateChange OnAuthStateChange;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnRemoveAuthToken OnRemoveAuthToken;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnSubscribeStateChange OnSubscribeStateChange;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnSubscribe OnSubscribe;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnSubscribeFail OnSubscribeFail;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnSubscribeRequest OnSubscribeRequest;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnUnSubscribe OnUnSubscribe;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnRaw OnRaw;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnMessage OnMessage;
-
-	UPROPERTY(BlueprintAssignable, Category = "SocketCluster|Client")
-		FSCOnKickOut OnKickOut;
 
 	UPROPERTY(Transient)
 		UWorld* World;
 
 	virtual class UWorld* GetWorld() const override;
 
-	void create(const UObject* WorldContextObject, TSubclassOf<USCAuthEngine> authEngine, TSubclassOf<USCCodecEngine> codecEngine, USCJsonObject* opts);
+	void create(const UObject* WorldContextObject, TSubclassOf<USCAuthEngine> authEngine, TSubclassOf<USCCodecEngine> codecEngine, TSharedPtr<FJsonObject> opts);
 
 	/**
 	* Returns the state of the socket as a enum.
@@ -290,45 +203,68 @@ public:
 		ESocketClusterState getState();
 
 	/**
-	* Perform client - initiated deauthentication - Deauthenticate(logout) the current socket.The callback will receive an error as the first argument if the operation fails.
+	* Perform client-initiated deauthentication
+	* Deauthenticate (logout) the current socket. The callback will receive an error as the first argument if the operation fails.
+	*
+	* @param callback			Optional, The name of the function to be called when the callback is received.
+	* @param callbackTarget		Optional, defaults to self, The class location of the Callback function.
+	*
+	* Note : The Callback function needs to have at least the following parameters.
+	* First Parameter : USCJsonValue* (error)
 	*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Deauthenticate", DefaultToSelf = "CallbackTarget"), Category = "SocketCluster|Client")
-		void deauthenticateBlueprint(const FString& Callback = FString(""), UObject* CallbackTarget = nullptr);
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Deauthenticate", DefaultToSelf = "callbackTarget"), Category = "SocketCluster|Client")
+		void deauthenticateBlueprint(const FString& callback = FString(""), UObject* callbackTarget = nullptr);
 
 private:
 
-	void deauthenticateBlueprintCallback(UObject* target, const FString& callback, USCJsonObject* error);
+	void deauthenticateBlueprintCallback(const FString& callback, UObject* target, TSharedPtr<FJsonValue> error);
 
 public:
 
-	/**
-	* Perform client - initiated deauthentication - Deauthenticate(logout) the current socket.The callback will receive an error as the first argument if the operation fails.
+	/** 
+	* Perform client - initiated deauthentication - Deauthenticate(logout) the current socket.The callback will receive an error as the first argument if the operation fails. 
+	* 
+	* @param callback			Optional, callback(err).
 	*/
-	void deauthenticate(TFunction<void(USCJsonObject*)> callback = nullptr);
+	void deauthenticate(TFunction<void(TSharedPtr<FJsonValue>)> callback = nullptr);
 	
 	/**
 	* Reconnects the client socket to its origin server.
 	*
-	* - You don't need to call Connect manually unless you have unchecked AutoConnect at the creation of the socket
+	* Note : You don't need to call Connect manually unless you have unchecked AutoConnect at the creation of the socket
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Connect"), Category = "SocketCluster|Client")
 		void connect();
 
 private:
 
-	void reconnect(int32 code, USCJsonObject* data);
+	void reconnect(int32 code, TSharedPtr<FJsonValue> data);
 
 public:
 
-	/** Disconnect From The SocketCluster Server */
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Disconnect", HidePin = "code", AutoCreateRefTerm = "data"), Category = "SocketCluster|Client")
-		void disconnect(int32 code = 1000, USCJsonObject* data = nullptr);
+	/** 
+	* Disconnect this socket from the server. This function accepts two optional arguments: A custom error code (a Number - Ideally between 4100 to 4500) and data (which can be either reason message String or an Object). 
+	* 
+	* @param code		Optional, error code
+	* @param data		Optional, reason message
+	*/
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Disconnect"), Category = "SocketCluster|Client")
+		void disconnectBlueprint(int32 code = 1000, USCJsonValue* data = nullptr);
 
 	/**
-	* Disconnects and destroys the socket so that it can be garbage collected.
+	* Disconnect this socket from the server. This function accepts two optional arguments: A custom error code (a Number - Ideally between 4100 to 4500) and data (which can be either reason message String or an Object).
+	*
+	* @param code		Optional, error code
+	* @param data		Optional, reason message
 	*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Destroy", HidePin = "code, data", AutoCreateRefTerm = "Data"), Category = "SocketCluster|Client")
-		void destroy(int32 code = 1000, USCJsonObject* data = nullptr);
+	void disconnect(int32 code = 1000, TSharedPtr<FJsonValue> data = nullptr);
+
+	/** Disconnects and destroys the socket so that it can be garbage collected. */
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Destroy", HidePin = "code, data"), Category = "SocketCluster|Client")
+		void destroyBlueprint(int32 code = 1000, USCJsonValue* data = nullptr);
+
+	/** Disconnects and destroys the socket so that it can be garbage collected. */
+	void destroy(int32 code = 1000, TSharedPtr<FJsonValue> data = nullptr);
 
 private:
 
@@ -340,48 +276,60 @@ private:
 
 	FString encodeBase64(FString decodedString);
 
-	USCJsonObject* _extractAuthTokenData(FString signedAuthToken);
+	TSharedPtr<FJsonValue> _extractAuthTokenData(FString signedAuthToken);
 
 public:
 
-	/**
-	* Returns the auth token as a plain JavaScript object.
-	*/
+	/** Returns the auth token as a plain JavaScript object. */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Auth Token"), Category = "SocketCluster|Client")
-		USCJsonObject* getAuthToken();
+		USCJsonValue* getAuthTokenBlueprint();
 
-	/**
-	* Returns the signed auth token as a string in the JWT format.
-	*/
+	/** Returns the auth token as a plain JavaScript object. */
+	TSharedPtr<FJsonValue> getAuthToken();
+
+	/** Returns the signed auth token as a string in the JWT format. */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Signed Auth Token"), Category = "SocketCluster|Client")
 		FString getSignedAuthToken();
 
 	/**
-	* Perform client-initiated authentication - This is useful if you already have a valid encrypted auth token string 
-	* and would like to use it to authenticate directly with the server (without having to ask the user to login details)
+	* Perform client-initiated authentication - This is useful if you already have a valid encrypted auth token string
+	* and would like to use it to authenticate directly with the server (without having to ask the user to login details).
+	* The callback will receive an error as the first argument if the operation fails.
+	*
+	* @param token				The token to use for authentication.
+	* @param callback			Optional, The name of the function to be called when the callback is received.
+	* @param callbackTarget		Optional, defaults to self, The class location of the Callback function.
+	*
+	* Note : The Callback function needs to have at least the following parameters.
+	* First Parameter : USCJsonValue* (error)
+	* Second Parameter : USCJsonValue* (authStatus)
 	*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Authenticate", DefaultToSelf = "CallbackTarget"), Category = "SocketCluster|Client")
-		void authenticateBlueprint(const FString& signedAuthToken, const FString& Callback = FString(""), UObject* CallbackTarget = nullptr);
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Authenticate", DefaultToSelf = "callbackTarget"), Category = "SocketCluster|Client")
+		void authenticateBlueprint(const FString& token, const FString& callback = FString(""), UObject* callbackTarget = nullptr);
 
 private:
 
-	void authenticateBlueprintCallback(UObject* target, const FString& callback, USCJsonObject* error, USCJsonObject* data);
+	void authenticateBlueprintCallback(const FString& callback, UObject* target, TSharedPtr<FJsonValue> error, TSharedPtr<FJsonValue> data);
 
 public:
 
 	/**
 	* Perform client-initiated authentication - This is useful if you already have a valid encrypted auth token string
 	* and would like to use it to authenticate directly with the server (without having to ask the user to login details)
+	* The callback will receive an error as the first argument if the operation fails.
+	*
+	* @param token				The token to use for authentication.
+	* @param callback			Optional, callback(err, authStatus);
 	*/
-	void authenticate(FString signedAuthToken, TFunction<void(USCJsonObject*, USCJsonObject*)> callback = nullptr);
+	void authenticate(FString token, TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback = nullptr);
 
 private:
 
 	void _tryReconnect(float initialDelay = NULL);
 
-	void _onSCOpen(USCJsonObject* status);
+	void _onSCOpen(TSharedPtr<FJsonObject> status);
 
-	void _onSCError(USCJsonObject* err);
+	void _onSCError(TSharedPtr<FJsonValue> err);
 
 	void _suspendSubscriptions();
 
@@ -389,67 +337,160 @@ private:
 
 	void _onSCClose(int32 code, FString data, bool openAbort = false);
 
-	void _onSCEvent(FString event, USCJsonObject* data, USCResponse* res);
+	void _onSCEvent(FString event, TSharedPtr<FJsonValue> data, USCResponse* res = nullptr);
 
-	USCJsonObject* decode(FString message);
+	TSharedPtr<FJsonValue> decode(FString message);
 
-	FString encode(USCJsonObject* object);
+	FString encode(TSharedPtr<FJsonValue> object);
 
 	void _flushEmitBuffer();
 
 	void _handleEventAckTimeout(USCEventObject* eventObject);
 
-	void _emit(FString event, USCJsonObject* data, TFunction<void(USCJsonObject*, USCJsonObject*)> callback);
+	void _emit(FString event, TSharedPtr<FJsonValue> data, TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback);
 
 public:
 
-	/**
-	* Send some raw data to the server. This will trigger a 'raw' event on the server which will carry the provided data.
+	/** 
+	* Send some raw data to the server. This will trigger a 'raw' event on the server which will carry the provided data. 
+	* 
+	* @param data		Data to send to the server.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Send"), Category = "SocketCluster|Client")
 		void send(const FString& data);
 
 	/**
-	* Emit the specified event on the corresponding server-side socket. Note that you cannot emit any of the reserved SCSocket events
+	* Emit the specified event on the corresponding server-side socket. Note that you cannot emit any of the reserved SCSocket events.
+	*
+	* @param event				The name of the event.
+	* @param data				Optional, The data to send to the server.
+	* @param callback			Optional, The name of the function to be called when the callback is received.
+	* @param callbackTarget		Optional, defaults to self, The class location of the callback function.
+	*
+	* Note : The Callback function needs to have at least the following parameters.
+	* First Parameter	: USCJsonValue* (error)
+	* Second Parameter	: USCJsonValue* (data)
 	*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Emit", DefaultToSelf = "CallbackTarget"), Category = "SocketCluster|Client")
-		void emitBlueprint(const FString& Event, USCJsonObject* Data = nullptr, const FString& Callback = FString(""), UObject* CallbackTarget = nullptr);
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Emit", DefaultToSelf = "callbackTarget"), Category = "SocketCluster|Client")
+		void emitBlueprint(const FString& event, USCJsonValue* data = nullptr, const FString& callback = FString(""), UObject* callbackTarget = nullptr);
 
 private:
 
-	void emitBlueprintCallback(UObject* target, const FString& callback, USCJsonObject* error, USCJsonObject* data);
+	void emitBlueprintCallback(const FString& callback, UObject* target, TSharedPtr<FJsonValue> error, TSharedPtr<FJsonValue> data);
 
 public:
 
 	/**
-	* Emit the specified event on the corresponding server-side socket. Note that you cannot emit any of the reserved SCSocket events
+	* Emit the specified event on the corresponding server-side socket. Note that you cannot emit any of the reserved SCSocket events.
+	*
+	* @param event				The name of the event.
+	* @param data				Optional, The data to send to the server.
+	* @param callback			Optional, callback(err, data)
 	*/
-	void emit(FString event, USCJsonObject* data = nullptr, TFunction<void(USCJsonObject*, USCJsonObject*)> callback = nullptr);
+	void emit(FString event, TSharedPtr<FJsonValue> data = nullptr, TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback = nullptr);
 
 	/**
-	* Publish data to the specified channelName. The channelName argument must be a string. 
-	* The data argument can be any JSON-compatible object/array or primitive. The callback lets you check that the publish action reached the backend successfully
+	* Client Side Event :
+	* Add a handler for a particular event (those emitted from the client). 
+	* The handler is a function in the form:
+	* - First Parameter	: USCJsonValue* (data)
+	*
+	* Server Side Event :
+	* Add a handler for a particular event (those emitted from a corresponding socket on the server). 
+	* The handler is a function in the form:
+	* - First Parameter	: USCJsonValue* (data)
+	* - Second Parameter	: USCResponse* (res)
+	* The res argument is a function which can be used to send a response to the server socket which emitted the event (assuming that the server is expecting a response - I.e. A callback was provided to the emit method). 
+	* The res function is in the form: res(err, message) - To send back an error, you can do either: res('This is an error') or res(1234, 'This is the error message for error code 1234'). 
+	* To send back a normal non-error response: res(null, 'This is a normal response message').
+	*
+	* @param event					The name of the event.
+	* @param handler				Optional, The name of the function to be called when the event is called.
+	* @param handlerTarget			Optional, defaults to self, The class location of the handler function.
 	*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Publish", DefaultToSelf = "CallbackTarget"), Category = "SocketCluster|Client")
-		void publishBlueprint(const FString& ChannelName, USCJsonObject* Data = nullptr, const FString& Callback = FString(""), UObject* CallbackTarget = nullptr);
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "On", DefaultToSelf = "HandlerTarget"), Category = "SocketCluster|Client")
+		void onBlueprint(const FString& event, const FString& handler = FString(""), UObject* handlerTarget = nullptr);
 
 private:
 
-	void publishBlueprintCallback(UObject* target, const FString& callback, USCJsonObject* error, USCJsonObject* data);
+	void onBlueprintHandler(const FString& event, const FString& handler, UObject* handlerTarget, TSharedPtr<FJsonValue> data, USCResponse* res);
+
+public:
+
+	/**
+	* Client Side Event :
+	* Add a handler for a particular event (those emitted from the client).
+	* The handler is a function in the form: handler(data, nullptr)
+	* 
+	* - Note : the handler function is the same as server side event but the res will be nullptr.
+	*
+	* Server Side Event :
+	* Add a handler for a particular event (those emitted from a corresponding socket on the server).
+	* The handler is a function in the form: handler(data, res)
+	* The res argument is a function which can be used to send a response to the server socket which emitted the event (assuming that the server is expecting a response - I.e. A callback was provided to the emit method).
+	* The res function is in the form: res(err, message) - To send back an error, you can do either: res('This is an error') or res(1234, 'This is the error message for error code 1234').
+	* To send back a normal non-error response: res(null, 'This is a normal response message').
+	*
+	* @param event					The name of the event.
+	* @param handler				Optional, handler(data, res)
+	*/
+	void on(FString event, TFunction<void(TSharedPtr<FJsonValue>, USCResponse*)> handler = nullptr);
+
+	/** 
+	* Unbind a previously attached event handler. 
+	*
+	* @param event		The name of the event to unbind.
+	*/
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Off"), Category = "SocketCluster|Client")
+		void off(FString event);
+
+	/**
+	* Publish data to the specified channelName. The channelName argument must be a string. 
+	* The data argument can be any JSON-compatible object/array or primitive. 
+	* The callback lets you check that the publish action reached the backend successfully. 
+	* Callback function is in the form :
+	* - First Parameter		: USCJsonValue* (error)
+	* - Second Parameter	: USCJsonValue* (ackData)
+	*
+	* On success, the err argument will be undefined. 
+	* The ackData argument will be a value which is passed back from back end middleware (undefined by default); 
+	* see the example about MIDDLEWARE_PUBLISH_IN for more details. 
+	*
+	* @param channelName		The name of the channel to publish data to.
+	* @param data				The data to send to the channel.
+	* @param callback			Optional, The name of the function to be called when the callback is received.
+	* @param callbackTarget		Optional, defaults to self, The class location of the Callback function.
+	*/
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Publish", DefaultToSelf = "callbackTarget"), Category = "SocketCluster|Client")
+		void publishBlueprint(const FString& channelName, USCJsonValue* data = nullptr, const FString& callback = FString(""), UObject* callbackTarget = nullptr);
+
+private:
+
+	void publishBlueprintCallback(const FString& callback, UObject* target, TSharedPtr<FJsonValue> error, TSharedPtr<FJsonValue> data);
 
 public:
 
 	/**
 	* Publish data to the specified channelName. The channelName argument must be a string.
-	* The data argument can be any JSON-compatible object/array or primitive. The callback lets you check that the publish action reached the backend successfully
+	* The data argument can be any JSON-compatible object/array or primitive.
+	* The callback lets you check that the publish action reached the backend successfully.
+	* Callback function is in the form callback(err, ackData)
+	*
+	* On success, the err argument will be undefined.
+	* The ackData argument will be a value which is passed back from back end middleware (undefined by default);
+	* see the example about MIDDLEWARE_PUBLISH_IN for more details.
+	*
+	* @param channelName		The name of the channel to publish data to.
+	* @param data				The data to send to the channel.
+	* @param callback			Optional, callback(err, ackData)
 	*/
-	void publish(FString channelName, USCJsonObject* data, TFunction<void(USCJsonObject*, USCJsonObject*)> callback = nullptr);
+	void publish(FString channelName, TSharedPtr<FJsonValue> data, TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback = nullptr);
 
 private:
 
-	void _triggerChannelSubscribe(USCChannel* channel, USCJsonObject* subscriptionOptions);
+	void _triggerChannelSubscribe(USCChannel* channel, TSharedPtr<FJsonObject> subscriptionOptions);
 
-	void _triggerChannelSubscribeFail(USCJsonObject* err, USCChannel* channel, USCJsonObject* subscriptionOptions);
+	void _triggerChannelSubscribeFail(TSharedPtr<FJsonValue> err, USCChannel* channel, TSharedPtr<FJsonObject> subscriptionOptions);
 
 	void _cancelPendingSubscribeCallback(USCChannel* channel);
 
@@ -462,10 +503,39 @@ private:
 public:
 
 	/**
-	* Subscribe to a particular channel. This function returns an SCChannel object which lets you watch for incoming data on that channel.
+	* Subscribe to a particular channel. This function returns an SCChannel object which lets you watch for incoming data on that channel. 
+	* If waitForAuth is true, the channel will wait for the socket to become authenticated before trying to subscribe to the server - These kinds of channels are sometimes known as "private channels" 
+	* - Note that in this case, "authenticated" means that the client socket has received a valid JWT authToken 
+	* - Read about the server-side socket.setAuthToken(tokenData) function for more details. 
+	* The data property can be used to pass data along with the subscription. 
+	* The batch property - It's false by default; if set to true, then the subscription request will be batched together with other subscriptions instead of being sent off immediately and individually. 
+	* By the default, the batch duration is 0 (which will batch subscribe calls that are within the same call stack). 
+	* Note that the pubSubBatchDuration can be specified on a per-socket basis as an option when creating/connecting the socket for the first time. 
+	* Batching can result in a significant performance boost if the client needs to subscribe to a large number of channels (will also speed up socket reconnect if there are a lot of pending channels).
+	* 
+	* @param channelName		The name of the channel to subscribe to.
+	* @param waitForAuth		Optional, Wait for the socket to become authenticated before trying to subscribe to the channel.
+	* @param data				Optional, Data to send with the subscribe request.
+	* @param batch				Optional, Batch subscribe request together with other subscriptions.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Subscribe"), Category = "SocketCluster|Client")
-		USCChannel* subscribe(const FString& channelName, const bool waitForAuth = false, USCJsonObject* data = nullptr, const bool batch = false);
+		USCChannel* subscribeBlueprint(const FString& channelName, const bool waitForAuth = false, USCJsonValue* data = nullptr, const bool batch = false);
+
+	/**
+	* Subscribe to a particular channel. This function returns an SCChannel object which lets you watch for incoming data on that channel.
+	* If waitForAuth is true, the channel will wait for the socket to become authenticated before trying to subscribe to the server - These kinds of channels are sometimes known as "private channels"
+	* - Note that in this case, "authenticated" means that the client socket has received a valid JWT authToken
+	* - Read about the server-side socket.setAuthToken(tokenData) function for more details.
+	* The data property can be used to pass data along with the subscription.
+	* The batch property - It's false by default; if set to true, then the subscription request will be batched together with other subscriptions instead of being sent off immediately and individually.
+	* By the default, the batch duration is 0 (which will batch subscribe calls that are within the same call stack).
+	* Note that the pubSubBatchDuration can be specified on a per-socket basis as an option when creating/connecting the socket for the first time.
+	* Batching can result in a significant performance boost if the client needs to subscribe to a large number of channels (will also speed up socket reconnect if there are a lot of pending channels).
+	*
+	* @param channelName		The name of the channel to subscribe to.
+	* @param opts				Optional, Options for this subscribe request {waitForAuth: true, data: someCustomData, batch: true}.
+	*/
+	USCChannel* subscribe(const FString& channelName, TSharedPtr<FJsonObject> opts = nullptr);
 
 private:
 
@@ -478,74 +548,114 @@ public:
 	/**
 	* Unsubscribe from the specified channel. This makes any associated SCChannel object inactive. 
 	* You can reactivate the SCChannel object by calling subscribe(channelName) again at a later time.
+	* 
+	* @param channelName		The name of the channel to unsubscribe from.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "UnSubscribe"), Category = "SocketCluster|Client")
 		void unsubscribe(const FString& channelName);
 
 	/**
-	* Returns an SCChannel instance. This is different from subscribe() in that it will not try to subscribe to that channel. 
+	* Returns an SCChannel instance. 
+	* This is different from subscribe() in that it will not try to subscribe to that channel. 
 	* The returned channel will be inactive initially. You can call channel->subscribe() later to activate that channel when required.
+	* 
+	* @param channelName		The name of the channel.
+	* @param waitForAuth		Optional, Wait for the socket to become authenticated before trying to subscribe to the channel.
+	* @param data				Optional, Data to send with the subscribe request.
+	* @param batch				Optional, Batch subscribe request together with other subscriptions.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Channel"), Category = "SocketCluster|Client")
-		USCChannel* channel(const FString& channelName, const bool waitForAuth = false, USCJsonObject* data = nullptr, const bool batch = false);
+		USCChannel* channelBlueprint(const FString& channelName, const bool waitForAuth = false, USCJsonValue* data = nullptr, const bool batch = false);
+
+	/**
+	* Returns an SCChannel instance.
+	* This is different from subscribe() in that it will not try to subscribe to that channel.
+	* The returned channel will be inactive initially. You can call channel->subscribe() later to activate that channel when required.
+	*
+	* @param channelName		The name of the channel.
+	* @param opts				Optional, Options for this channel {waitForAuth: true, data: someCustomData, batch: true}.
+	*/
+	USCChannel* channel(const FString& channelName, TSharedPtr<FJsonObject> opts);
 
 	/**
 	* This will cause SCSocket to unsubscribe that channel and remove any watchers from it. 
 	* Any SCChannel object which is associated with that channelName will be disabled permanently (ready to be cleaned up by garbage collector).
+	* 
+	* @param channelName		The name of the channel to destroy.
 	*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "DestroyChannel"), Category = "SocketCluster|Client")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Destroy Channel"), Category = "SocketCluster|Client")
 		void destroyChannel(const FString& channelName);
 
 	/**
 	* Returns an array of active channel subscriptions which this socket is bound to. If includePending is true, pending subscriptions will also be included in the list.
+	*
+	* @param includePending		Optional, Include channels in pending state.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Subscriptions"), Category = "SocketCluster|Client")
 		TArray<FString> subscriptions(const bool includePending = false);
 
 	/**
 	* Check if socket is subscribed to channelName. If includePending is true, pending subscriptions will also be included in the list.
+	* 
+	* @param channelName		The name of the channel to check.
+	* @param includePending		Optional, Include channels in pending state.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "isSubscribed"), Category = "SocketCluster|Client")
 		bool isSubscribed(const FString& channelName, const bool includePending = false);
 
-private:
-
-	void processPendingSubscriptions();
-
-public:
-
-	/**
-	* 	Lets you watch a channel directly from the SCSocket object. The handler accepts a single data argument which holds the data which was published to the channel.
-	*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Watch", DefaultToSelf = "CallbackTarget"), Category = "SocketCluster|Client")
-		void watchBlueprint(const FString& channelName, const FString& Handler, UObject* HandlerTarget);
-
-private:
-
-	void watchBlueprintCallback(UObject* target, const FString& handler, USCJsonObject* data);
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "ProcessPendingSubscriptions"), Category = "SocketCluster|Client")
+		void processPendingSubscriptions();
 
 public:
 
 	/**
-	* 	Lets you watch a channel directly from the SCSocket object. The handler accepts a single data argument which holds the data which was published to the channel.
+	* Lets you watch a channel directly from the SCSocket object. The handler accepts a single data argument which holds the data which was published to the channel.
+	*
+	* @param channelName		The name of the channel to watch.
+	* @param handler			The name of the function to be called when data is received on the channel.
+	* @param handlerTarget		Optional, defaults to self, The class location of the handler function.
+	*
+	* The handler is a function in one of the following forms:
+	* - First Parameter	: USCJsonValue* (data)
+	* or
+	* - First Parameter : FString (data)
 	*/
-	void watch(FString channelName, TFunction<void(USCJsonObject*)> handler);
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Watch", DefaultToSelf = "handlerTarget"), Category = "SocketCluster|Client")
+		void watchBlueprint(const FString& channelName, const FString& handler, UObject* handlerTarget);
+
+private:
+
+	void watchBlueprintCallback(const FString& handler, UObject* target, TSharedPtr<FJsonValue> data);
+
+public:
+
+	/**
+	* Lets you watch a channel directly from the SCSocket object. The handler accepts a single data argument which holds the data which was published to the channel.
+	*
+	* @param channelName		The name of the channel to watch.
+	* @param handler			handler(data)
+	*/
+	void watch(FString channelName, TFunction<void(TSharedPtr<FJsonValue>)> handler);
 
 	/**
 	* Stop handling data which is published on the specified channel. This is different from unsubscribe in that the socket will still receive channel data but the specified handler will no longer capture it
+	*
+	* @param channelName		The name of the channel to unwatch.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "UnWatch"), Category = "SocketCluster|Client")
 		void unwatch(const FString& channelName);
 
 	/**
 	* Get a list of functions which are currently observing this channel
+	*
+	* @param channelName		The name of the channel to the watchers for.
 	*/
-	TArray<TFunction<void(USCJsonObject*)>> watchers(FString channelName);
+	TArray<TFunction<void(TSharedPtr<FJsonValue>)>> watchers(FString channelName);
 
 private:
 
 	void clearTimeout(FTimerHandle timer);
 
-	FString queryParse(TArray<USCJsonObject*> query);
+	FString queryParse(TSharedPtr<FJsonObject> query);
 
 };

@@ -17,49 +17,58 @@
 	"Installed": false,
     "Modules": [
         {
-			"Name": "SCClient",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [
-				"Win64",
-				"Win32"
-			]
-		},
+            "Name": "SCClient",
+            "Type": "Runtime",
+            "LoadingPhase": "Default",
+            "WhitelistPlatforms": [
+                "Win64",
+                "Win32"
+            ]
+        },
         {
-			"Name": "SCErrors",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [
-				"Win64",
-				"Win32"
-			]
-		},
+            "Name": "SCSocket",
+            "Type": "Runtime",
+            "LoadingPhase": "Default",
+            "WhitelistPlatforms": [
+                "Win64",
+                "Win32"
+            ]
+        },
         {
-			"Name": "SCCodecEngine",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [
-				"Win64",
-				"Win32"
-			]
-		},
+            "Name": "SCErrors",
+            "Type": "Runtime",
+            "LoadingPhase": "Default",
+            "WhitelistPlatforms": [
+                "Win64",
+                "Win32"
+            ]
+        },
         {
-			"Name": "SCAuthEngine",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [
-				"Win64",
-				"Win32"
-			]
-		},
+            "Name": "SCCodecEngine",
+            "Type": "Runtime",
+            "LoadingPhase": "Default",
+            "WhitelistPlatforms": [
+                "Win64",
+                "Win32"
+            ]
+        },
         {
-			"Name": "SCJson",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [
-				"Win64",
-				"Win32"
-			]
-		}
+            "Name": "SCAuthEngine",
+            "Type": "Runtime",
+            "LoadingPhase": "Default",
+            "WhitelistPlatforms": [
+                "Win64",
+                "Win32"
+            ]
+        },
+        {
+            "Name": "SCJson",
+            "Type": "Runtime",
+            "LoadingPhase": "Default",
+            "WhitelistPlatforms": [
+                "Win64",
+                "Win32"
+            ]
+        }
     ]
 }

@@ -3,7 +3,7 @@
 #include "SCSocket.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "SCErrors.h"
-#include "SCClientModule.h"
+#include "SCSocketModule.h"
 
 // Namespace UI Conflict.
 // Remove UI Namepspace
@@ -29,7 +29,7 @@ THIRD_PARTY_INCLUDES_END
 
 static struct lws_protocols protocols[] = {
 	{
-		"SocketCluster",
+		"socketcluster",
 		USCSocket::ws_service_callback,
 		0,
 	},
@@ -38,6 +38,20 @@ static struct lws_protocols protocols[] = {
 		NULL,
 		0
 	}
+};
+
+const struct lws_protocol_vhost_options pvo_opt = {
+	NULL,
+	NULL,
+	"default",
+	"1"
+};
+
+const struct lws_protocol_vhost_options pvo = {
+	NULL,
+	&pvo_opt,
+	"socketcluster",
+	""
 };
 
 static const struct lws_extension exts[] = {
@@ -58,9 +72,9 @@ static const struct lws_extension exts[] = {
 	}
 };
 
-void USCSocket::BeginDestroy()
+static void lws_debug(int level, const char *line)
 {
-	Super::BeginDestroy();
+	UE_LOG(LogSCSocket, Log, TEXT("%s"), ANSI_TO_TCHAR(line));
 }
 
 void USCSocket::Tick(float DeltaTime)
@@ -84,49 +98,50 @@ TStatId USCSocket::GetStatId() const
 
 int USCSocket::ws_service_callback(lws* wsi, lws_callback_reasons reason, void* user, void* in, size_t len)
 {
+
 	void* wsi_user = lws_wsi_user(wsi);
 	USCSocket* SCSocket = (USCSocket*)wsi_user;
 
 	switch (reason)
 	{
-		case LWS_CALLBACK_CLIENT_ESTABLISHED:
+	case LWS_CALLBACK_CLIENT_ESTABLISHED:
+	{
+		SCSocket->readyState = ESocketState::OPEN;
+		if (SCSocket->onopen)
 		{
-			SCSocket->readyState = ESocketClusterState::OPEN;
-			if (SCSocket->onopen)
-			{
-				SCSocket->onopen();
-			}
+			SCSocket->onopen();
 		}
-		break;
-		case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+	}
+	break;
+	case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+	{
+		TSharedPtr<FJsonValue> Error = USCErrors::SocketProtocolError(UTF8_TO_TCHAR(in), 1005);
+		if (SCSocket->onerror)
 		{
-			USCJsonObject* Error = USCErrors::SocketProtocolError(UTF8_TO_TCHAR(in), 1005);
-			if (SCSocket->onerror)
-			{
-				SCSocket->onerror(Error);
-			}
+			SCSocket->onerror(Error);
 		}
-		break;
-		case LWS_CALLBACK_CLOSED:
+	}
+	break;
+	case LWS_CALLBACK_CLOSED:
+	{
+		if (SCSocket->onclose)
 		{
-			if (SCSocket->onclose)
-			{
-				USCJsonObject* Error = NewObject<USCJsonObject>();
-				Error->SetIntegerField("code", 1001);
-				Error->SetStringField("reason", UTF8_TO_TCHAR(in));
-				SCSocket->onclose(Error);
-			}
+			TSharedPtr<FJsonObject> Error = MakeShareable(new FJsonObject);
+			Error->SetNumberField("code", 1001);
+			Error->SetStringField("reason", UTF8_TO_TCHAR(in));
+			SCSocket->onclose(Error);
 		}
-		break;
-		case LWS_CALLBACK_CLIENT_RECEIVE:
+	}
+	break;
+	case LWS_CALLBACK_CLIENT_RECEIVE:
+	{
+		TSharedPtr<FJsonObject> Message = MakeShareable(new FJsonObject);
+		Message->SetStringField("data", UTF8_TO_TCHAR(in));
+		if (SCSocket->onmessage)
 		{
-			USCJsonObject* Message = NewObject<USCJsonObject>();
-			Message->SetStringField("data", UTF8_TO_TCHAR(in));
-			if (SCSocket->onmessage)
-			{
-				SCSocket->onmessage(Message);
-			}
+			SCSocket->onmessage(Message);
 		}
+	}
 	}
 	return 0;
 }
@@ -156,14 +171,20 @@ int USCSocket::ws_write_back(lws* wsi, const char* str, int str_size_in)
 	return n;
 }
 
-void USCSocket::createWebSocket(FString uri, USCJsonObject* options)
+void USCSocket::createWebSocket(FString uri, TSharedPtr<FJsonObject> options)
 {
-	readyState = ESocketClusterState::CLOSED;
+
+#if !UE_BUILD_SHIPPING
+	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_DEBUG | LLL_INFO, lws_debug);
+#endif
+
+	readyState = ESocketState::CLOSED;
 
 	struct lws_context_creation_info context_info;
 	memset(&context_info, 0, sizeof(context_info));
 
 	context_info.protocols = protocols;
+	context_info.pvo = &pvo;
 	context_info.ssl_cert_filepath = NULL;
 	context_info.ssl_private_key_filepath = NULL;
 
@@ -181,7 +202,7 @@ void USCSocket::createWebSocket(FString uri, USCJsonObject* options)
 
 	if (!context)
 	{
-		UE_LOG(LogSCClient, Error, TEXT("%s : context failed"), *SCC_FUNC_LINE);
+		UE_LOG(LogSCSocket, Error, TEXT("context failed"));
 		return;
 	}
 
@@ -190,7 +211,7 @@ void USCSocket::createWebSocket(FString uri, USCJsonObject* options)
 	{
 		if (onerror)
 		{
-			USCJsonObject* Error = USCErrors::SocketProtocolError("Invalid URL:" + uri, 0);
+			TSharedPtr<FJsonValue> Error = USCErrors::SocketProtocolError("Invalid URL:" + uri, 0);
 			onerror(Error);
 		}
 		return;
@@ -225,6 +246,7 @@ void USCSocket::createWebSocket(FString uri, USCJsonObject* options)
 	}
 
 	FString address = host;
+
 	int port;
 	pos = address.Find(":");
 	if (pos != INDEX_NONE)
@@ -250,7 +272,6 @@ void USCSocket::createWebSocket(FString uri, USCJsonObject* options)
 	std::string stdAddress = TCHAR_TO_UTF8(*address);
 	std::string stdPath = TCHAR_TO_UTF8(*path);
 	std::string stdHost = TCHAR_TO_UTF8(*host);
-	std::string stdOrigin = TCHAR_TO_UTF8(*FString("Origin"));
 
 	client_info.context = context;
 	client_info.address = stdAddress.c_str();
@@ -260,20 +281,21 @@ void USCSocket::createWebSocket(FString uri, USCJsonObject* options)
 	client_info.host = stdHost.c_str();
 	client_info.origin = stdHost.c_str();
 	client_info.ietf_version_or_minus_one = -1;
+	client_info.protocol = protocols[0].name;
 	client_info.userdata = this;
 
 	socket = lws_client_connect_via_info(&client_info);
 
 	if (!socket)
 	{
-		UE_LOG(LogSCClient, Error, TEXT("%s : lws failed"), *SCC_FUNC_LINE);
+		UE_LOG(LogSCSocket, Error, TEXT("lws failed"));
 		return;
 	}
 }
 
 void USCSocket::send(FString data)
 {
-	if (readyState == ESocketClusterState::OPEN)
+	if (readyState == ESocketState::OPEN)
 	{
 		std::string strData = TCHAR_TO_UTF8(*data);
 		ws_write_back(socket, strData.c_str(), strData.size());

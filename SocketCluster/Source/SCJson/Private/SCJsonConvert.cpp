@@ -96,6 +96,13 @@ USCJsonValue* USCJsonConvert::ToSCJsonValue(const TArray<TSharedPtr<FJsonValue>>
 	return ResultValue;
 }
 
+USCJsonObject* USCJsonConvert::ToSCJsonObject(const TSharedPtr<FJsonObject>& JsonObject)
+{
+	USCJsonObject* ResultObject = NewObject<USCJsonObject>();
+	ResultObject->SetRootObject(JsonObject);
+	return ResultObject;
+}
+
 #if PLATFORM_WINDOWS
 #pragma endregion ToJsonValue
 #endif

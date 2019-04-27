@@ -23,9 +23,9 @@ public:
 
 	FString event;
 
-	USCJsonObject* data;
+	TSharedPtr<FJsonValue> data;
 
-	TFunction<void(USCJsonObject* error, USCJsonObject* data)> callback;
+	TFunction<void(TSharedPtr<FJsonValue> error, TSharedPtr<FJsonValue> data)> callback;
 
 	FTimerDelegate timeout;
 

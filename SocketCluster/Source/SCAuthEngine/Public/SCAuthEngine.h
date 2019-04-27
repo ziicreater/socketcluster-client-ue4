@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "SCAuthEngine.generated.h"
 
-class USCJsonObject;
+class FJsonValue;
 
 /**
 * The SocketCluster AuthEngine
@@ -17,11 +17,11 @@ class SCAUTHENGINE_API USCAuthEngine : public UObject
 
 public:
 
-	virtual void saveToken(FString name, FString token, TFunction<void(USCJsonObject*, FString&)> callback);
+	virtual void saveToken(FString name, FString token, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback);
 
-	virtual void removeToken(FString name, TFunction<void(USCJsonObject*, FString&)> callback);
+	virtual void removeToken(FString name, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback);
 
-	virtual void loadToken(FString name, TFunction<void(USCJsonObject*, FString&)> callback);
+	virtual void loadToken(FString name, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback);
 
 };
 

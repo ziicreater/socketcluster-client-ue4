@@ -16,8 +16,12 @@ class SCCODECENGINE_API USC_Formatter : public USCCodecEngine
 
 public:
 
-	virtual FString encode(USCJsonObject* object) override;
+	//FString arrayBufferToBase64();
 
-	virtual USCJsonObject* decode(const FString& input) override;
+	//FString binaryToBase64Replacer();
+
+	virtual FString encode(TSharedPtr<FJsonValue> object) override;
+
+	virtual TSharedPtr<FJsonValue> decode(const FString& input) override;
 
 };

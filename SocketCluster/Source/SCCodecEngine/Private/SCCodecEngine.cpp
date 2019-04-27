@@ -3,7 +3,7 @@
 #include "SCCodecEngine.h"
 #include "SCCodecEngineModule.h"
 
-FString USCCodecEngine::encode(USCJsonObject* object)
+FString USCCodecEngine::encode(TSharedPtr<FJsonValue> object)
 {
 	#if !UE_BUILD_SHIPPING
 		UE_LOG(LogSCCodecEngine, Error, TEXT("USCCodecEngine::Encode has not been implemented!"));
@@ -11,7 +11,7 @@ FString USCCodecEngine::encode(USCJsonObject* object)
 	return FString();
 }
 
-USCJsonObject* USCCodecEngine::decode(const FString& input)
+TSharedPtr<FJsonValue> USCCodecEngine::decode(const FString& input)
 {
 	#if !UE_BUILD_SHIPPING
 		UE_LOG(LogSCCodecEngine, Error, TEXT("USCCodecEngine::Decode has not been implemented!"));

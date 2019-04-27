@@ -7,11 +7,14 @@
 #include "Engine/World.h"
 #include "SCAuthEngine.h"
 #include "SCCodecEngine.h"
+#include "SCJsonConvert.h"
 #include "SCJsonObject.h"
+#include "SCJsonValue.h"
 #include "SCSocket.h"
 #include "SCClientSocket.h"
 #include "SCEventObject.h"
 #include "SCResponse.h"
+#include "SCSocket.h"
 #include "SCTransport.generated.h"
 
 /**
@@ -26,120 +29,145 @@ class SCCLIENT_API USCTransport : public UObject
 
 	virtual class UWorld* GetWorld() const override;
 
-	/** The current state */
+	/**
+	 * The current state of the socket as a enum
+	 * - CONNECTING
+	 * - OPEN
+	 * - CLOSED
+	 */
 	ESocketClusterState state;
 
-	/** The current authEngine */
-	UPROPERTY()
-	USCAuthEngine* auth;
-
-	/** The current codecEngine */
+	/** The current CodecEngine */
 	UPROPERTY()
 	USCCodecEngine* codec;
 
-	/** The current options */
+	/** The current AuthEngine */
 	UPROPERTY()
-	USCJsonObject* options;
+	USCAuthEngine* auth;
 
-	/** A float for the Timeout of the connect event */
+	/** The current options associated with this client socket */
+	TSharedPtr<FJsonObject> options;
+
+	/** This is the timeout for the connect event in milliseconds */
 	float connectTimeout;
 
 public:
 
-	/** A float for the Timeout of the ping event */
+	/** This is the timeout for the ping responses from the server in milliseconds */
 	float pingTimeout;
 
 private:
 
-	/** A boolean which indicates if the ping Timeout is disabled */
+	/** Whether or not the client socket should disconnect itself when the ping times out */
 	bool pingTimeoutDisabled;
 
-	/** The auth token name */
+	/** The name of the JWT auth token (provided to the authEngine - By default this is the Storage variable name); defaults to 'socketCluster.authToken'. */
 	FString authTokenName;
 
+	/** The current callback id */
 	int32 _cid;
 
-	/** The current socket */
+	/** The current Socket */
 	UPROPERTY()
 	USCSocket* socket;
 
-	//TArray<USCEventObject*> _callbackMap;
+	/** The internal callback map*/
 	TMap<int32, USCEventObject*> _callbackMap;
 
-	TSet<USCJsonObject*> _batchSendList;
+	/** The internal batch send list*/
+	TArray<TSharedPtr<FJsonValue>> _batchSendList;
 
+	/** The batch timeout reference */
 	FTimerDelegate _batchTimeout;
+
+	/** The batch timeout handler */
 	FTimerHandle _batchTimeoutHandle;
 
+	/** The connect timeout reference */
 	FTimerDelegate _connectTimeoutRef;
+
+	/** The connect timeout handler */
 	FTimerHandle _connectTimeoutHandle;
 
+	/** The ping timeout reference */
 	FTimerDelegate _pingTimeoutTicker;
+
+	/** The ping timeout handler */
 	FTimerHandle _pingTimeoutTickerHandle;
 	
 public:
 
-	TFunction<void(USCJsonObject* status)> onopen;
+	TFunction<void(TSharedPtr<FJsonObject> status)> onopen;
 
-	TFunction<void(USCJsonObject* err)> onerror;
+	TFunction<void(TSharedPtr<FJsonValue> err)> onerror;
 
 	TFunction<void(int32 code, FString data)> onclose;
 
 	TFunction<void(int32 code, FString data)> onopenAbort;
 
-	TFunction<void(FString event, USCJsonObject* data, USCResponse* res)> onevent;
+	TFunction<void(FString event, TSharedPtr<FJsonValue> data, USCResponse* res)> onevent;
 
-	TFunction<void(FString message)> onraw;
+	void create(USCAuthEngine* authEngine, USCCodecEngine* codecEngine, TSharedPtr<FJsonObject> opts);
 
-	TFunction<void(FString message)> onmessage;
-
-	void create(USCAuthEngine* authEngine, USCCodecEngine* codecEngine, USCJsonObject* opts);
+private:
 
 	FString uri();
 	
 	void _onOpen();
 
-	void _handshake(TFunction<void(USCJsonObject*, USCJsonObject*)> callback);
+	void _handshake(TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback);
 
 	void _abortAllPendingEventsDueToBadConnection(FString failureType);
 
 	void _onClose(int32 code, FString data = "");
 
-	void _handleEventObject(USCJsonObject* obj, FString message);
+	void _handleEventObject(TSharedPtr<FJsonObject> obj, FString message);
 
 	void _onMessage(FString message);
 
-	void _onError(USCJsonObject* err);
+	void _onError(TSharedPtr<FJsonValue> err);
 
 	void _resetPingTimeout();
 
-	void close(int32 code = 1000, USCJsonObject* data = nullptr);
+public:
 
-	int32 emitObject(USCEventObject* eventObject, USCJsonObject* options = nullptr);
+	void close(int32 code = 1000, TSharedPtr<FJsonValue> data = nullptr);
+
+	int32 emitObject(USCEventObject* eventObject, TSharedPtr<FJsonObject> options = nullptr);
+
+private:
 
 	void _handleEventAckTimeout(USCEventObject* eventObject);
 
-	int32 emit(FString event, USCJsonObject* data, USCJsonObject* options = nullptr, TFunction<void(USCJsonObject*, USCJsonObject*)> callback = nullptr);
+public:
+
+	int32 emit(FString event, TSharedPtr<FJsonValue> data, TSharedPtr<FJsonObject> options = nullptr, TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback = nullptr);
 
 	void cancelPendingResponse(int32 cid);
 
-	USCJsonObject* decode(FString message);
+	TSharedPtr<FJsonValue> decode(FString message);
 
-	FString encode(USCJsonObject* object);
+	FString encode(TSharedPtr<FJsonValue> object);
 
 	void send(FString data);
 
-	FString serializeObject(USCJsonObject* object);
+private:
 
-	FString serializeObject(TSet<USCJsonObject*> object);
+	FString serializeObject(TSharedPtr<FJsonValue> object);
 
-	void sendObjectBatch(USCJsonObject* object);
+	void sendObjectBatch(TSharedPtr<FJsonValue> object);
 
-	void sendObjectSingle(USCJsonObject* object);
+	void sendObjectSingle(TSharedPtr<FJsonValue> object);
 
-	void sendObject(USCJsonObject* object, USCJsonObject* options);
+	void sendObject(TSharedPtr<FJsonValue> object, TSharedPtr<FJsonObject> options = nullptr);
 
 	int32 callIdGenerator();
+
+public:
+
+	void off();
+
+private:
 
 	void clearTimeout(FTimerHandle timer);
 };

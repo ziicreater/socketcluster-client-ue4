@@ -6,6 +6,7 @@
 #include "Runtime/Json/Public/Policies/CondensedJsonPrintPolicy.h"
 #include "Runtime/Json/Public/Serialization/JsonWriter.h"
 #include "Runtime/Json/Public/Serialization/JsonSerializer.h"
+#include "SCJsonValue.h"
 #include "SCJsonModule.h"
 
 typedef TJsonWriterFactory< TCHAR, TCondensedJsonPrintPolicy<TCHAR> > FCondensedJsonStringWriterFactory;

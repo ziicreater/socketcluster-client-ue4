@@ -1,92 +1,95 @@
 // Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
 
 #include "SCChannel.h"
+#include "SCJsonValue.h"
 #include "SCClientSocket.h"
 
-USCChannel* USCChannel::create(FString name, USCClientSocket* client, USCJsonObject* options)
+USCChannel* USCChannel::create(FString channelName, USCClientSocket* clientSocket, TSharedPtr<FJsonObject> options)
 {
 	USCChannel* channel = NewObject<USCChannel>();
-	channel->_name = name;
-	channel->_state = ESocketClusterChannelState::UNSUBSCRIBED;
-	channel->_client = client;
+	channel->Emitter.Empty();
+	channel->channel_name = channelName;
+	channel->channel_state = ESocketClusterChannelState::UNSUBSCRIBED;
+	channel->channel_client = clientSocket;
 
-	channel->_options = options;
+	channel->channel_options = options;
 	channel->setOptions(options);
 	return channel;
 }
 
-void USCChannel::setOptions(USCJsonObject* options)
+void USCChannel::setOptions(TSharedPtr<FJsonObject> options)
 {
 	if (!options)
 	{
-		options = NewObject<USCJsonObject>();
+		options = MakeShareable(new FJsonObject);
 	}
-	_waitForAuth = options->GetBoolField("waitForAuth") || false;
-	_batch = options->GetBoolField("batch") || false;
-	_pendingSubscriptionCid = 0;
-	if (options->HasField("data"))
+	channel_waitForAuth = options->HasField("waitForAuth") ? options->GetBoolField("waitForAuth") : false;
+	channel_batch = options->HasField("batch") ? options->GetBoolField("batch") : false;
+	channel_pendingSubscriptionCid = 0;
+	if (options->HasField("data") && options->GetObjectField("data").IsValid())
 	{
-		_data = options->GetObjectField("data");
+		channel_data = USCJsonConvert::ToJsonValue(options->GetObjectField("data"));
 	}
 }
 
 ESocketClusterChannelState USCChannel::getState()
 {
-	return _state;
+	return channel_state;
 }
 
-void USCChannel::subscribe(const bool waitForAuth, USCJsonObject* data, const bool batch)
+void USCChannel::subscribeBlueprint(const bool waitForAuth, USCJsonValue* data, const bool batch)
 {
-	USCJsonObject* opts = NewObject<USCJsonObject>();
-	opts->SetBoolField("waitForAuth", waitForAuth);
-	opts->SetObjectField("data", data);
-	opts->SetBoolField("batch", batch);
-	_client->subscribe(_name, opts);
+	channel_client->subscribeBlueprint(channel_name, waitForAuth, data, batch);
+}
+
+void USCChannel::subscribe(TSharedPtr<FJsonObject> options)
+{
+	channel_client->subscribe(channel_name, options);
 }
 
 void USCChannel::unsubscribe()
 {
-	_client->unsubscribe(_name);
+	channel_client->unsubscribe(channel_name);
 }
 
 bool USCChannel::isSubscribed(const bool includePending)
 {
-	return _client->isSubscribed(_name, includePending);
+	return channel_client->isSubscribed(channel_name, includePending);
 }
 
-void USCChannel::publishBlueprint(USCJsonObject* Data, const FString& Callback, UObject* CallbackTarget)
+void USCChannel::publishBlueprint(USCJsonValue* data, const FString& callback, UObject* callbackTarget)
 {
-	_client->publishBlueprint(_name, Data, Callback, CallbackTarget);
+	channel_client->publishBlueprint(channel_name, data, callback, callbackTarget);
 }
 
-void USCChannel::publish(USCJsonObject* data, TFunction<void(USCJsonObject*, USCJsonObject*)> callback)
+void USCChannel::publish(TSharedPtr<FJsonValue> data, TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback)
 {
-	_client->publish(_name, data, callback);
+	channel_client->publish(channel_name, data, callback);
 }
 
-void USCChannel::watchBlueprint(const FString& Handler, UObject* HandlerTarget)
+void USCChannel::watchBlueprint(const FString& handler, UObject* handlerTarget)
 {
-	_client->watchBlueprint(_name, Handler, HandlerTarget);
+	channel_client->watchBlueprint(channel_name, handler, handlerTarget);
 }
 
-void USCChannel::watch(TFunction<void(USCJsonObject*)> handler)
+void USCChannel::watch(TFunction<void(TSharedPtr<FJsonValue>)> handler)
 {
-	_client->watch(_name, handler);
+	channel_client->watch(channel_name, handler);
 }
 
 void USCChannel::unwatch()
 {
-	_client->unwatch(_name);
+	channel_client->unwatch(channel_name);
 }
 
-TArray<TFunction<void(USCJsonObject*)>> USCChannel::watchers()
+TArray<TFunction<void(TSharedPtr<FJsonValue>)>> USCChannel::watchers()
 {
-	return _client->watchers(_name);
+	return channel_client->watchers(channel_name);
 }
 
 void USCChannel::destroy()
 {
-	_client->destroyChannel(_name);
+	channel_client->destroyChannel(channel_name);
 }
 
 

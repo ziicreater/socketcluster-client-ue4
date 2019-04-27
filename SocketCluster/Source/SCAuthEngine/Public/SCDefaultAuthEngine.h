@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "SCAuthEngine.h"
-#include "SCJsonObject.h"
+#include "SCJsonValue.h"
 #include "SCDefaultAuthEngine.generated.h"
 
 /**
@@ -22,9 +22,9 @@ protected:
 
 public:
 
-	virtual void saveToken(FString name, FString token, TFunction<void(USCJsonObject*, FString&)> callback) override;
+	virtual void saveToken(FString name, FString token, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback) override;
 
-	virtual void removeToken(FString name, TFunction<void(USCJsonObject*, FString&)> callback) override;
+	virtual void removeToken(FString name, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback) override;
 
-	virtual void loadToken(FString name, TFunction<void(USCJsonObject*, FString&)> callback) override;
+	virtual void loadToken(FString name, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback) override;
 };

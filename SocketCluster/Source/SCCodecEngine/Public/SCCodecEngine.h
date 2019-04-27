@@ -3,7 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SCJsonObject.h"
+#include "SCJsonConvert.h"
+#include "SCJsonValue.h"
 #include "SCCodecEngine.generated.h"
 
 /**
@@ -16,8 +17,8 @@ class SCCODECENGINE_API USCCodecEngine : public UObject
 
 public:
 	
-	virtual FString encode(USCJsonObject* Object);
+	virtual FString encode(TSharedPtr<FJsonValue> Object);
 
-	virtual USCJsonObject* decode(const FString& Input);
+	virtual TSharedPtr<FJsonValue> decode(const FString& Input);
 
 };

@@ -3,6 +3,7 @@
 #include "SCErrors.h"
 #include "SCErrorsModule.h"
 #include "SCJsonConvert.h"
+#include "SCJsonValue.h"
 #include "SCJsonObject.h" 
 
 
@@ -41,271 +42,276 @@ TMap<int32, FString> USCErrors::socketProtocolIgnoreStatusesLoader()
 	return list;
 }
 
-USCJsonObject* USCErrors::Error(USCJsonObject* error)
+TSharedPtr<FJsonValue> USCErrors::Error(TSharedPtr<FJsonValue> error)
 {
-	USCJsonObject* hydratedError = nullptr;
-	if (error)
+	TSharedPtr<FJsonValue> hydratedError = nullptr;
+	if (error.IsValid() && error->Type == EJson::Object)
 	{
-		ESocketClusterErrors SCError = USCJsonConvert::StringToEnum<ESocketClusterErrors>("ESocketClusterErrors", error->GetStringField("name"));
+		TSharedPtr<FJsonObject> err = error->AsObject();
+		ESocketClusterErrors SCError = USCJsonConvert::StringToEnum<ESocketClusterErrors>("ESocketClusterErrors", err->GetStringField("name"));
 		switch (SCError)
 		{
 			case ESocketClusterErrors::AuthTokenExpiredError:
-				hydratedError = AuthTokenExpiredError(error->GetStringField("message"), error->GetStringField("expiry"));
+				hydratedError = AuthTokenExpiredError(err->GetStringField("message"), err->GetStringField("expiry"));
 				break;
 			case ESocketClusterErrors::AuthTokenInvalidError:
-				hydratedError = AuthTokenInvalidError(error->GetStringField("message"));
+				hydratedError = AuthTokenInvalidError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::AuthTokenNotBeforeError:
-				hydratedError = AuthTokenNotBeforeError(error->GetStringField("message"), error->GetObjectField("data"));
+				hydratedError = AuthTokenNotBeforeError(err->GetStringField("message"), err->GetObjectField("data"));
 				break;
 			case ESocketClusterErrors::AuthTokenError:
-				hydratedError = AuthTokenError(error->GetStringField("message"));
+				hydratedError = AuthTokenError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::SilentMiddlewareBlockedError:
-				hydratedError = SilentMiddlewareBlockedError(error->GetStringField("message"), error->GetStringField("type"));
+				hydratedError = SilentMiddlewareBlockedError(err->GetStringField("message"), err->GetStringField("type"));
 				break;
 			case ESocketClusterErrors::InvalidActionError:
-				hydratedError = InvalidActionError(error->GetStringField("message"));
+				hydratedError = InvalidActionError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::InvalidArgumentsError:
-				hydratedError = InvalidArgumentsError(error->GetStringField("message"));
+				hydratedError = InvalidArgumentsError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::InvalidOptionsError:
-				hydratedError = InvalidOptionsError(error->GetStringField("message"));
+				hydratedError = InvalidOptionsError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::InvalidMessageError:
-				hydratedError = InvalidMessageError(error->GetStringField("message"));
+				hydratedError = InvalidMessageError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::SocketProtocolError:
-				hydratedError = SocketProtocolError(error->GetStringField("message"), error->GetIntegerField("code"));
+				hydratedError = SocketProtocolError(err->GetStringField("message"), err->GetIntegerField("code"));
 				break;
 			case ESocketClusterErrors::ServerProtocolError:
-				hydratedError = ServerProtocolError(error->GetStringField("message"));
+				hydratedError = ServerProtocolError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::HTTPServerError:
-				hydratedError = HTTPServerError(error->GetStringField("message"));
+				hydratedError = HTTPServerError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::ResourceLimitError:
-				hydratedError = ResourceLimitError(error->GetStringField("message"));
+				hydratedError = ResourceLimitError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::TimeoutError:
-				hydratedError = TimeoutError(error->GetStringField("message"));
+				hydratedError = TimeoutError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::BadConnectionError:
-				hydratedError = BadConnectionError(error->GetStringField("message"), error->GetStringField("type"));
+				hydratedError = BadConnectionError(err->GetStringField("message"), err->GetStringField("type"));
 				break;
 			case ESocketClusterErrors::BrokerError:
-				hydratedError = BrokerError(error->GetStringField("message"));
+				hydratedError = BrokerError(err->GetStringField("message"));
 				break;
 			case ESocketClusterErrors::ProcessExitError:
-				hydratedError = ProcessExitError(error->GetStringField("message"));
+				hydratedError = ProcessExitError(err->GetStringField("message"));
 				break;
 			default:
-				hydratedError = UnknownError(error->GetStringField("message"));
+				hydratedError = UnknownError(err->GetStringField("message"));
 				break;
 		}
+	}
+	else
+	{
+		hydratedError = UnknownError(error->AsString());
 	}
 	return hydratedError;
 }
 
-USCJsonObject* USCErrors::AuthTokenExpiredError(FString message, FString expiry)
+TSharedPtr<FJsonValue> USCErrors::AuthTokenExpiredError(FString message, FString expiry)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "AuthTokenExpiredError");
-	error->SetStringField("message", message);
-	error->SetStringField("expiry", expiry);
+	error->SetStringField("message", "message");
+	error->SetStringField("expiry", "expiry");
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::AuthTokenInvalidError(FString message)
+TSharedPtr<FJsonValue> USCErrors::AuthTokenInvalidError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "AuthTokenInvalidError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::AuthTokenNotBeforeError(FString message, USCJsonObject* data)
+TSharedPtr<FJsonValue> USCErrors::AuthTokenNotBeforeError(FString message, TSharedPtr<FJsonObject> data)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "AuthTokenNotBeforeError");
 	error->SetStringField("message", message);
 	error->SetObjectField("data", data);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::AuthTokenError(FString message)
+TSharedPtr<FJsonValue> USCErrors::AuthTokenError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "AuthTokenError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::SilentMiddlewareBlockedError(FString message, FString type)
+TSharedPtr<FJsonValue> USCErrors::SilentMiddlewareBlockedError(FString message, FString type)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "SilentMiddlewareBlockedError");
 	error->SetStringField("message", message);
 	error->SetStringField("type", type);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::InvalidActionError(FString message)
+TSharedPtr<FJsonValue> USCErrors::InvalidActionError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "InvalidActionError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::InvalidArgumentsError(FString message)
+TSharedPtr<FJsonValue> USCErrors::InvalidArgumentsError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "InvalidArgumentsError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::InvalidOptionsError(FString message)
+TSharedPtr<FJsonValue> USCErrors::InvalidOptionsError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "InvalidOptionsError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::InvalidMessageError(FString message)
+TSharedPtr<FJsonValue> USCErrors::InvalidMessageError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "InvalidMessageError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::SocketProtocolError(FString message, int32 code)
+TSharedPtr<FJsonValue> USCErrors::SocketProtocolError(FString message, int32 code)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "SocketProtocolError");
 	error->SetStringField("message", message);
-	error->SetIntegerField("code", code);
+	error->SetNumberField("code", code);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::ServerProtocolError(FString message)
+TSharedPtr<FJsonValue> USCErrors::ServerProtocolError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "ServerProtocolError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::HTTPServerError(FString message)
+TSharedPtr<FJsonValue> USCErrors::HTTPServerError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "HTTPServerError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::ResourceLimitError(FString message)
+TSharedPtr<FJsonValue> USCErrors::ResourceLimitError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "ResourceLimitError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::TimeoutError(FString message)
+TSharedPtr<FJsonValue> USCErrors::TimeoutError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "TimeoutError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::BadConnectionError(FString message, FString type)
+TSharedPtr<FJsonValue> USCErrors::BadConnectionError(FString message, FString type)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "BadConnectionError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::BrokerError(FString message)
+TSharedPtr<FJsonValue> USCErrors::BrokerError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "BrokerError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::ProcessExitError(FString message)
+TSharedPtr<FJsonValue> USCErrors::ProcessExitError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "ProcessExitError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }
 
-USCJsonObject* USCErrors::UnknownError(FString message)
+TSharedPtr<FJsonValue> USCErrors::UnknownError(FString message)
 {
-	USCJsonObject* error = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> error = MakeShareable(new FJsonObject);
 	error->SetStringField("name", "UnknownError");
 	error->SetStringField("message", message);
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogSCErrors, Error, TEXT("%s"), *error->EncodeJson());
+	UE_LOG(LogSCErrors, Error, TEXT("%s"), *USCJsonConvert::ToJsonString(error));
 #endif
-	return error;
+	return USCJsonConvert::ToJsonValue(error);
 }

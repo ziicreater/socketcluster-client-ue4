@@ -3,11 +3,13 @@
 #include "SCTransport.h"
 #include "SCAuthEngine.h"
 #include "SCErrors.h"
+#include "SCSocket.h"
 #include "Runtime/Engine/Classes/Kismet/KismetSystemLibrary.h"
 #include "SCClientModule.h"
 
 void USCTransport::BeginDestroy()
 {
+	off();
 	Super::BeginDestroy();
 }
 
@@ -16,7 +18,7 @@ UWorld* USCTransport::GetWorld() const
 	return GetOuter()->GetWorld();
 }
 
-void USCTransport::create(USCAuthEngine* authEngine, USCCodecEngine* codecEngine, USCJsonObject* opts)
+void USCTransport::create(USCAuthEngine* authEngine, USCCodecEngine* codecEngine, TSharedPtr<FJsonObject> opts)
 {
 	state = ESocketClusterState::CLOSED;
 	auth = authEngine;
@@ -44,7 +46,7 @@ void USCTransport::create(USCAuthEngine* authEngine, USCCodecEngine* codecEngine
 		_onOpen();
 	};
 
-	socket->onclose = [&](const USCJsonObject* Event)
+	socket->onclose = [&](const TSharedPtr<FJsonObject> Event)
 	{
 		int32 code;
 		if (!Event->HasField("code"))
@@ -53,17 +55,17 @@ void USCTransport::create(USCAuthEngine* authEngine, USCCodecEngine* codecEngine
 		}
 		else
 		{
-			code = Event->GetIntegerField("code");
+			code = Event->GetNumberField("code");
 		}
 		_onClose(code, Event->GetStringField("reason"));
 	};
 
-	socket->onmessage = [&](const USCJsonObject* Message)
+	socket->onmessage = [&](const TSharedPtr<FJsonObject> Message)
 	{
 		_onMessage(Message->GetStringField("data"));
 	};
 
-	socket->onerror = [&](const USCJsonObject* Error)
+	socket->onerror = [&](const TSharedPtr<FJsonValue> Error)
 	{
 		if (state == ESocketClusterState::CONNECTING)
 		{
@@ -112,14 +114,14 @@ void USCTransport::_onOpen()
 	clearTimeout(_connectTimeoutHandle);
 	_resetPingTimeout();
 
-	_handshake([&](USCJsonObject* err, USCJsonObject* status)
+	_handshake([&](TSharedPtr<FJsonValue> err, TSharedPtr<FJsonValue> status)
 	{
-		if (err)
+		if (err.IsValid())
 		{
 			int32 statusCode;
-			if (status && status->HasField("code"))
+			if (status.IsValid() && status->AsObject()->HasField("code"))
 			{
-				statusCode = status->GetIntegerField("code");
+				statusCode = status->AsObject()->GetNumberField("code");
 			}
 			else
 			{
@@ -132,43 +134,43 @@ void USCTransport::_onOpen()
 		else
 		{
 			state = ESocketClusterState::OPEN;
-			onopen(status);
+			onopen(status->AsObject());
 			_resetPingTimeout();
 		}
 	});
 }
 
-void USCTransport::_handshake(TFunction<void(USCJsonObject*, USCJsonObject*)> callback)
+void USCTransport::_handshake(TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback)
 {
-
-	auth->loadToken(authTokenName, [&](USCJsonObject* err, FString& token)
+	auth->loadToken(authTokenName, [&, callback](TSharedPtr<FJsonValue> err, FString token)
 	{
-		if (err)
+		if (err.IsValid())
 		{
 			callback(err, nullptr);
 		}
 		else
 		{
-			USCJsonObject* options = NewObject<USCJsonObject>();
+			TSharedPtr<FJsonObject> options = MakeShareable(new FJsonObject);
 			options->SetBoolField("force", true);
 
-			USCJsonObject* data = NewObject<USCJsonObject>();
+			TSharedPtr<FJsonObject> data = MakeShareable(new FJsonObject);
 			if (!token.IsEmpty())
 			{
 				data->SetStringField("authToken", token);
 			}
-			emit("#handshake", data, options, [&, token, callback, this](USCJsonObject* err, USCJsonObject* status)
+			emit("#handshake", USCJsonConvert::ToJsonValue(data), options, [&, token, callback, this](TSharedPtr<FJsonValue> err, TSharedPtr<FJsonValue> status)
 			{
-				if (status)
+				if (status.IsValid())
 				{
+					TSharedPtr<FJsonObject> data = status->AsObject();
 					if (!token.IsEmpty())
 					{
-						status->SetStringField("authToken", token);
+						data->SetStringField("authToken", token);
 					}
 
-					if (status->HasField("authError"))
+					if (data->HasField("authError"))
 					{
-						status->SetObjectField("authError", USCErrors::Error(status->GetObjectField("authError")));
+						data->SetField("authError", USCErrors::Error(USCJsonConvert::ToJsonValue(data->GetObjectField("authError"))));
 					}
 				}
 				callback(err, status);
@@ -187,15 +189,20 @@ void USCTransport::_abortAllPendingEventsDueToBadConnection(FString failureType)
 		clearTimeout(eventObject->timeoutHandle);
 
 		FString errorMessage = "Event '" + eventObject->event + "' was aborted due to a bad connection";
-		USCJsonObject* badConnectionError = USCErrors::BadConnectionError(errorMessage, failureType);
+		TSharedPtr<FJsonValue> badConnectionError = USCErrors::BadConnectionError(errorMessage, failureType);
 
-		TFunction<void(USCJsonObject* error, USCJsonObject* data)> callback = eventObject->callback;
+		TFunction<void(TSharedPtr<FJsonValue> error, TSharedPtr<FJsonValue> data)> callback = eventObject->callback;
 		callback(badConnectionError, eventObject->data);
 	}
 }
 
 void USCTransport::_onClose(int32 code, FString data)
 {
+	socket->onopen = nullptr;
+	socket->onclose = nullptr;
+	socket->onmessage = nullptr;
+	socket->onerror = nullptr;
+
 	clearTimeout(_connectTimeoutHandle);
 	clearTimeout(_pingTimeoutTickerHandle);
 	clearTimeout(_batchTimeoutHandle);
@@ -214,77 +221,91 @@ void USCTransport::_onClose(int32 code, FString data)
 	}
 }
 
-void USCTransport::_handleEventObject(USCJsonObject* obj, FString message)
+void USCTransport::_handleEventObject(TSharedPtr<FJsonObject> obj, FString message)
 {
-	if (obj && obj->HasField("event"))
+	if (obj.IsValid() && obj->HasField("event"))
 	{
-		USCResponse* response = NewObject<USCResponse>();
-		response->create(this, obj->GetIntegerField("cid"));
-		onevent(obj->GetStringField("event"), obj->GetObjectField("data"), response);
+		USCResponse* response = nullptr;
+		if (obj->HasField("cid"))
+		{
+			response = NewObject<USCResponse>();
+			response->create(this, obj->GetNumberField("cid"));
+		}
+		onevent(obj->GetStringField("event"), USCJsonConvert::ToJsonValue(obj->GetObjectField("data")), response);
 	}
-	else if (obj && obj->HasField("rid"))
+	else if (obj.IsValid() && obj->HasField("rid"))
 	{
-		USCEventObject* eventObject = _callbackMap.FindRef(obj->GetIntegerField("rid"));
+		USCEventObject* eventObject = _callbackMap.FindRef(obj->GetNumberField("rid"));
 		if (eventObject)
 		{
 			clearTimeout(eventObject->timeoutHandle);
-			_callbackMap.Remove(obj->GetIntegerField("rid"));
+			_callbackMap.Remove(obj->GetNumberField("rid"));
 			if (eventObject->callback)
 			{
-				USCJsonObject* rehydratedError = USCErrors::Error(obj->GetObjectField("error"));
-				eventObject->callback(rehydratedError, obj->GetObjectField("data"));
+				TSharedPtr<FJsonValue> rehydratedError;
+				if (obj->HasField("error") && obj->GetObjectField("error").IsValid())
+				{
+					rehydratedError = USCErrors::Error(USCJsonConvert::ToJsonValue(obj->GetObjectField("error")));
+				}
+
+				TSharedPtr<FJsonValue> data = MakeShareable(new FJsonValueNull);
+				if (obj->HasField("data") && obj->GetObjectField("data"))
+				{
+					data = USCJsonConvert::ToJsonValue(obj->GetObjectField("data"));
+				}
+
+				eventObject->callback(rehydratedError, data);
 			}
 		}
 	}
 	else
 	{
-		onraw(message);
+		onevent("raw", USCJsonConvert::ToJsonValue(message), nullptr);
 	}
 }
 
 void USCTransport::_onMessage(FString message)
 {
-	onmessage(message);
-	
-	if (options->GetIntegerField("protocolVersion") == 0 && message.Equals("#1"))
+	onevent("message", USCJsonConvert::ToJsonValue(message), nullptr);
+
+	TSharedPtr<FJsonValue> obj = decode(message);
+
+	if (options->GetNumberField("protocolVersion") == 0 && obj->Type == EJson::String && obj->AsString().Equals("#1"))
 	{
 		_resetPingTimeout();
-		if (socket->readyState == ESocketClusterState::OPEN)
+		if (socket->readyState == ESocketState::OPEN)
 		{
-			send("#2");
+			sendObject(MakeShareable(new FJsonValueString("#2")));
 		}
 	}
-	else if(options->GetIntegerField("protocolVersion") == 1 && message.Equals(""))
+	else if(options->GetNumberField("protocolVersion") == 1 && obj->Type == EJson::Null && obj->IsNull())
 	{
 		_resetPingTimeout();
-		if (socket->readyState == ESocketClusterState::OPEN)
+		if (socket->readyState == ESocketState::OPEN)
 		{
-			send("");
+			sendObject(MakeShareable(new FJsonValueString("")));
 		}
 	}
 	else
 	{
-		FString MessageArray = FString("{\"root\":");
-		MessageArray.Append(message).Append("}");
-		USCJsonObject* DecodedArray = decode(MessageArray);
-		TArray<USCJsonObject*> ArrayObj = DecodedArray->GetObjectArrayField("root");
-
-		if (ArrayObj.Num() > 0)
+		if (obj->Type == EJson::Array)
 		{
-			for (int32 i = 0; i != ArrayObj.Num(); ++i)
+			TArray<TSharedPtr<FJsonValue>> array = obj->AsArray();
+			for (int32 i = 0; i != array.Num(); ++i)
 			{
-				_handleEventObject(ArrayObj[i], message);
+				TSharedPtr<FJsonObject> objItem = array[i]->AsObject();
+				_handleEventObject(objItem, message);
 			}
 		}
 		else
 		{
-			USCJsonObject* obj = decode(message);
-			this->_handleEventObject(obj, message);
-		}
+			TSharedPtr<FJsonObject> Item = obj->AsObject();
+			_handleEventObject(Item, message);
+		}	
 	}
 }
 
-void USCTransport::_onError(USCJsonObject* err)
+void USCTransport::_onError(TSharedPtr<FJsonValue> err)
 {
 	onerror(err);
 }
@@ -305,54 +326,43 @@ void USCTransport::_resetPingTimeout()
 	GetWorld()->GetTimerManager().SetTimer(_pingTimeoutTickerHandle, _pingTimeoutTicker, pingTimeout, false);
 }
 
-void USCTransport::close(int32 code, USCJsonObject* data)
+void USCTransport::close(int32 code, TSharedPtr<FJsonValue> data)
 {
 	if (state == ESocketClusterState::OPEN)
 	{
-
-		USCJsonObject* packet = NewObject<USCJsonObject>();
-		packet->SetIntegerField("code", code);
-		if (data)
+		TSharedPtr<FJsonObject> packet = MakeShareable(new FJsonObject);
+		packet->SetNumberField("code", code);
+		if (data.IsValid())
 		{
-			packet->SetObjectField("data", data);
+			packet->SetField("data", data);
 		}
 
-		emit("#disconnect", packet);
+		emit("#disconnect", USCJsonConvert::ToJsonValue(packet));
 
-		_onClose(code, data ? data->EncodeJson() : "");
+		_onClose(code, data ? USCJsonConvert::ToJsonString(data) : "");
 		socket->close(code);
-
-		onopen = nullptr;
-		onerror = nullptr;
-		onclose = nullptr;
-		onopenAbort = nullptr;
-		onevent = nullptr;
-		onraw = nullptr;
-		onmessage = nullptr;
-		clearTimeout(_pingTimeoutTickerHandle);
 	}
 	else if (state == ESocketClusterState::CONNECTING)
 	{
-		_onClose(code, data ? data->EncodeJson() : "");
+		_onClose(code, data ? USCJsonConvert::ToJsonString(data) : "");
 		socket->close(code);
 	}
 }
 
-int32 USCTransport::emitObject(USCEventObject* eventObject, USCJsonObject* opts)
+int32 USCTransport::emitObject(USCEventObject* eventObject, TSharedPtr<FJsonObject> opts)
 {
-
-	USCJsonObject* simpleEventObject = NewObject<USCJsonObject>();
+	TSharedPtr<FJsonObject> simpleEventObject = MakeShareable(new FJsonObject);
 	simpleEventObject->SetStringField("event", eventObject->event);
-	simpleEventObject->SetObjectField("data", eventObject->data);
+	simpleEventObject->SetField("data", eventObject->data);
 
 	if (eventObject->callback)
 	{
 		eventObject->cid = callIdGenerator();
-		simpleEventObject->SetIntegerField("cid", eventObject->cid);
+		simpleEventObject->SetNumberField("cid", eventObject->cid);
 		_callbackMap.Add(eventObject->cid, eventObject);
 	}
 
-	sendObject(simpleEventObject, opts);
+	sendObject(USCJsonConvert::ToJsonValue(simpleEventObject), opts);
 
 	return eventObject->cid || 0;
 }
@@ -366,15 +376,15 @@ void USCTransport::_handleEventAckTimeout(USCEventObject* eventObject)
 
 	clearTimeout(eventObject->timeoutHandle);
 
-	TFunction<void(USCJsonObject* error, USCJsonObject* data)> callback = eventObject->callback;
+	TFunction<void(TSharedPtr<FJsonValue> error, TSharedPtr<FJsonValue> data)> callback = eventObject->callback;
 	if (callback)
 	{
-		USCJsonObject* error = USCErrors::TimeoutError("Event response for '" + eventObject->event + "' timed out");
+		TSharedPtr<FJsonValue> error = USCErrors::TimeoutError("Event response for '" + eventObject->event + "' timed out");
 		callback(error, eventObject->data);
 	}
 }
 
-int32 USCTransport::emit(FString event, USCJsonObject* data, USCJsonObject* opts, TFunction<void(USCJsonObject*, USCJsonObject*)> callback)
+int32 USCTransport::emit(FString event, TSharedPtr<FJsonValue> data, TSharedPtr<FJsonObject> opts, TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback)
 {
 
 	USCEventObject* eventObject = NewObject<USCEventObject>();
@@ -401,19 +411,19 @@ void USCTransport::cancelPendingResponse(int32 cid)
 	_callbackMap.Remove(cid);
 }
 
-USCJsonObject* USCTransport::decode(FString message)
+TSharedPtr<FJsonValue> USCTransport::decode(FString message)
 {
 	return codec->decode(message);
 }
 
-FString USCTransport::encode(USCJsonObject* object)
+FString USCTransport::encode(TSharedPtr<FJsonValue> object)
 {
 	return codec->encode(object);
 }
 
 void USCTransport::send(FString data)
 {
-	if (socket->readyState != ESocketClusterState::OPEN)
+	if (socket->readyState != ESocketState::OPEN)
 	{
 		_onClose(1005);
 	}
@@ -423,31 +433,13 @@ void USCTransport::send(FString data)
 	}
 }
 
-FString USCTransport::serializeObject(USCJsonObject* object)
+FString USCTransport::serializeObject(TSharedPtr<FJsonValue> object)
 {
 	FString str = encode(object);
 	return str;
 }
 
-FString USCTransport::serializeObject(TSet<USCJsonObject*> object)
-{
-	FString str;
-	for (auto& Entry : object)
-	{
-		if (str.IsEmpty())
-		{
-			str.Append("[").Append(encode(Entry));
-		}
-		else
-		{
-			str.Append(",").Append(encode(Entry));
-		}
-	}
-	if (!str.IsEmpty()) { str.Append("]"); }
-	return str;
-}
-
-void USCTransport::sendObjectBatch(USCJsonObject* object)
+void USCTransport::sendObjectBatch(TSharedPtr<FJsonValue> object)
 {
 	_batchSendList.Add(object);
 	if (GetWorld()->GetTimerManager().IsTimerActive(_batchTimeoutHandle))
@@ -460,7 +452,7 @@ void USCTransport::sendObjectBatch(USCJsonObject* object)
 		clearTimeout(_batchTimeoutHandle);
 		if (_batchSendList.Num() > 0)
 		{
-			FString str = serializeObject(_batchSendList);
+			FString str = serializeObject(USCJsonConvert::ToJsonValue(_batchSendList));
 			if (!str.IsEmpty())
 			{
 				send(str);
@@ -468,21 +460,18 @@ void USCTransport::sendObjectBatch(USCJsonObject* object)
 			_batchSendList.Empty();
 		}
 	});
-	GetWorld()->GetTimerManager().SetTimer(_batchTimeoutHandle, _batchTimeout, options->GetNumberField("pubSubBatchDuration"), false);
+	GetWorld()->GetTimerManager().SetTimer(_batchTimeoutHandle, _batchTimeout, options->GetNumberField("pubSubBatchDuration") || 0, false);
 }
 
-void USCTransport::sendObjectSingle(USCJsonObject* object)
+void USCTransport::sendObjectSingle(TSharedPtr<FJsonValue> object)
 {
 	FString str = serializeObject(object);
-	if (!str.IsEmpty())
-	{
-		send(str);
-	}
+	send(str);
 }
 
-void USCTransport::sendObject(USCJsonObject* object, USCJsonObject* opts)
+void USCTransport::sendObject(TSharedPtr<FJsonValue> object, TSharedPtr<FJsonObject> opts)
 {
-	if (opts && opts->HasField("batch"))
+	if (opts.IsValid() && opts->HasField("batch"))
 	{
 		sendObjectBatch(object);
 	}
@@ -495,6 +484,13 @@ void USCTransport::sendObject(USCJsonObject* object, USCJsonObject* opts)
 int32 USCTransport::callIdGenerator()
 {
 	return _cid++;
+}
+
+void USCTransport::off()
+{
+	clearTimeout(_batchTimeoutHandle);
+	clearTimeout(_connectTimeoutHandle);
+	clearTimeout(_pingTimeoutTickerHandle);
 }
 
 void USCTransport::clearTimeout(FTimerHandle timer)

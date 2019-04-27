@@ -7,70 +7,86 @@
 
 void USCResponse::create(USCTransport* transport, int32 cid)
 {
-	this->socket = transport;
-	this->id = cid;
-	this->sent = false;
+	socket = transport;
+	id = cid;
+	sent = false;
 }
 
-void USCResponse::_respond(USCJsonObject* responseData)
+void USCResponse::_respond(TSharedPtr<FJsonValue> responseData)
 {
-	if (this->sent)
+	if (sent)
 	{
-		USCErrors::InvalidActionError("Response " + FString::FromInt(this->id) + " has already been sent");
+		USCErrors::InvalidActionError("Response " + FString::FromInt(id) + " has already been sent");
 	}
 	else
 	{
-		this->sent = true;
-		this->socket->send(this->socket->encode(responseData));
+		sent = true;
+		socket->send(socket->encode(responseData));
 	}
 }
 
-void USCResponse::end(USCJsonObject* data)
+void USCResponse::end(TSharedPtr<FJsonValue> data)
 {
-	if (this->id != 0)
+	if (id != 0)
 	{
-		USCJsonObject* responseData = NewObject<USCJsonObject>();
-		responseData->SetIntegerField("rid", this->id);
+		TSharedPtr<FJsonObject> responseData = MakeShareable(new FJsonObject);
+		responseData->SetNumberField("rid", id);
 		if (data)
 		{
-			responseData->SetObjectField("data", data);
+			responseData->SetField("data", data);
 		}
-		this->_respond(responseData);
+		_respond(USCJsonConvert::ToJsonValue(responseData));
 	}
 }
 
-void USCResponse::error(USCJsonObject* error, USCJsonObject* data)
+void USCResponse::error(TSharedPtr<FJsonValue> error, TSharedPtr<FJsonValue> data)
 {
-	if (this->id != 0)
+	if (id != 0)
 	{
-		USCJsonObject* err = USCErrors::Error(error);
+		TSharedPtr<FJsonValue> err = USCErrors::Error(error);
 
-		USCJsonObject* responseData = NewObject<USCJsonObject>();
-		responseData->SetIntegerField("rid", this->id);
-		responseData->SetObjectField("error", err);
+		TSharedPtr<FJsonObject> responseData = MakeShareable(new FJsonObject);
+		responseData->SetNumberField("rid", id);
+		responseData->SetField("error", err);
 
 		if (data)
 		{
-			responseData->SetObjectField("data", data);
+			responseData->SetField("data", data);
 		}
-		this->_respond(responseData);
+		_respond(USCJsonConvert::ToJsonValue(responseData));
 	}
 }
 
-void USCResponse::callback(USCJsonObject* error, USCJsonObject* data)
+void USCResponse::callback(TSharedPtr<FJsonValue> err, TSharedPtr<FJsonValue> data)
 {
-	UE_LOG(LogSCClient, Error, TEXT("%s :USCResponse::Callback Data : %s"), *SCC_FUNC_LINE, *data->EncodeJson());
-	if (error)
+	if (err)
 	{
-		this->error(error, data);
+		error(err, data);
 	}
 	else
 	{
-		this->end(data);
+		end(data);
 	}
 }
 
-void USCResponse::res(USCJsonObject* Error, USCJsonObject* Data)
+void USCResponse::res(TSharedPtr<FJsonValue> error, TSharedPtr<FJsonValue> data)
 {
-	this->callback(Error, Data);
+	callback(error, data);
+}
+
+void USCResponse::resBlueprint(USCJsonValue* error, USCJsonValue* data)
+{
+	TSharedPtr<FJsonValue> errorValue = nullptr;
+	if (error != nullptr)
+	{
+		errorValue = error->GetRootValue();
+	}
+
+	TSharedPtr<FJsonValue> dataValue = nullptr;
+	if (data != nullptr)
+	{
+		dataValue = data->GetRootValue();
+	}
+
+	res(errorValue, dataValue);
 }

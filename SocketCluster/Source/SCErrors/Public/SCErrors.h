@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SCJsonValue.h"
 #include "SCJsonObject.h"
 #include "SCErrors.generated.h"
 
@@ -30,7 +31,7 @@ enum class ESocketClusterErrors : uint8
 };
 
 /**
- * 
+ * The SocketCluster Errors
  */
 UCLASS()
 class SCERRORS_API USCErrors : public UObject
@@ -47,42 +48,42 @@ public:
 
 	static TMap<int32, FString> socketProtocolIgnoreStatuses;
 
-	static USCJsonObject* Error(USCJsonObject* error);
+	static TSharedPtr<FJsonValue> Error(TSharedPtr<FJsonValue> error);
 
-	static USCJsonObject* AuthTokenExpiredError(FString message, FString expiry);
+	static TSharedPtr<FJsonValue> AuthTokenExpiredError(FString message, FString expiry);
 
-	static USCJsonObject* AuthTokenInvalidError(FString message);
+	static TSharedPtr<FJsonValue> AuthTokenInvalidError(FString message);
 
-	static USCJsonObject* AuthTokenNotBeforeError(FString message, USCJsonObject* data);
+	static TSharedPtr<FJsonValue> AuthTokenNotBeforeError(FString message, TSharedPtr<FJsonObject> data);
 
-	static USCJsonObject* AuthTokenError(FString message);
+	static TSharedPtr<FJsonValue> AuthTokenError(FString message);
 
-	static USCJsonObject* SilentMiddlewareBlockedError(FString message, FString type);
+	static TSharedPtr<FJsonValue> SilentMiddlewareBlockedError(FString message, FString type);
 
-	static USCJsonObject* InvalidActionError(FString message);
+	static TSharedPtr<FJsonValue> InvalidActionError(FString message);
 
-	static USCJsonObject* InvalidArgumentsError(FString message);
+	static TSharedPtr<FJsonValue> InvalidArgumentsError(FString message);
 
-	static USCJsonObject* InvalidOptionsError(FString message);
+	static TSharedPtr<FJsonValue> InvalidOptionsError(FString message);
 
-	static USCJsonObject* InvalidMessageError(FString message);
+	static TSharedPtr<FJsonValue> InvalidMessageError(FString message);
 
-	static USCJsonObject* SocketProtocolError(FString message, int32 code);
+	static TSharedPtr<FJsonValue> SocketProtocolError(FString message, int32 code);
 
-	static USCJsonObject* ServerProtocolError(FString message);
+	static TSharedPtr<FJsonValue> ServerProtocolError(FString message);
 
-	static USCJsonObject* HTTPServerError(FString message);
+	static TSharedPtr<FJsonValue> HTTPServerError(FString message);
 
-	static USCJsonObject* ResourceLimitError(FString message);
+	static TSharedPtr<FJsonValue> ResourceLimitError(FString message);
 
-	static USCJsonObject* TimeoutError(FString message);
+	static TSharedPtr<FJsonValue> TimeoutError(FString message);
 
-	static USCJsonObject* BadConnectionError(FString message, FString type);
+	static TSharedPtr<FJsonValue> BadConnectionError(FString message, FString type);
 
-	static USCJsonObject* BrokerError(FString message);
+	static TSharedPtr<FJsonValue> BrokerError(FString message);
 
-	static USCJsonObject* ProcessExitError(FString message);
+	static TSharedPtr<FJsonValue> ProcessExitError(FString message);
 
-	static USCJsonObject* UnknownError(FString message);
+	static TSharedPtr<FJsonValue> UnknownError(FString message);
 	
 };
