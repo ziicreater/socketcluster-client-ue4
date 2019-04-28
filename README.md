@@ -30,7 +30,7 @@
   <a href="#dependencies">Dependencies</a>
 </p>
 
-![screenshot](https://i.ibb.co/smX8YVF/socketcluster-ue4.gif)
+![screenshot](https://i.ibb.co/dWH8Y5Q/socketcluster-ue4.gif)
 
 ## OS Supported
 
