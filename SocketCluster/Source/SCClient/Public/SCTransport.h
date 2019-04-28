@@ -97,7 +97,7 @@ private:
 	
 public:
 
-	TFunction<void(TSharedPtr<FJsonObject> status)> onopen;
+	TFunction<void(TSharedPtr<FJsonValue> status)> onopen;
 
 	TFunction<void(TSharedPtr<FJsonValue> err)> onerror;
 

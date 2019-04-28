@@ -60,9 +60,9 @@ void USCTransport::create(USCAuthEngine* authEngine, USCCodecEngine* codecEngine
 		_onClose(code, Event->GetStringField("reason"));
 	};
 
-	socket->onmessage = [&](const TSharedPtr<FJsonObject> Message)
+	socket->onmessage = [&](const FString& Message)
 	{
-		_onMessage(Message->GetStringField("data"));
+		_onMessage(Message);
 	};
 
 	socket->onerror = [&](const TSharedPtr<FJsonValue> Error)
@@ -134,7 +134,7 @@ void USCTransport::_onOpen()
 		else
 		{
 			state = ESocketClusterState::OPEN;
-			onopen(status->AsObject());
+			onopen(status);
 			_resetPingTimeout();
 		}
 	});
@@ -158,7 +158,7 @@ void USCTransport::_handshake(TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<
 			{
 				data->SetStringField("authToken", token);
 			}
-			emit("#handshake", USCJsonConvert::ToJsonValue(data), options, [&, token, callback, this](TSharedPtr<FJsonValue> err, TSharedPtr<FJsonValue> status)
+			emit("#handshake", USCJsonConvert::ToJsonValue(data), options, [&, token, callback](TSharedPtr<FJsonValue> err, TSharedPtr<FJsonValue> status)
 			{
 				if (status.IsValid())
 				{
@@ -236,21 +236,23 @@ void USCTransport::_handleEventObject(TSharedPtr<FJsonObject> obj, FString messa
 	else if (obj.IsValid() && obj->HasField("rid"))
 	{
 		USCEventObject* eventObject = _callbackMap.FindRef(obj->GetNumberField("rid"));
-		if (eventObject)
+		if (eventObject != nullptr)
 		{
 			clearTimeout(eventObject->timeoutHandle);
-			_callbackMap.Remove(obj->GetNumberField("rid"));
+			int32 rid = obj->GetNumberField("rid");
+			_callbackMap.Remove(rid);
 			if (eventObject->callback)
 			{
-				TSharedPtr<FJsonValue> rehydratedError;
-				if (obj->HasField("error") && obj->GetObjectField("error").IsValid())
+				TSharedPtr<FJsonValue> rehydratedError = nullptr;
+				if (obj->HasField("error"))
 				{
 					rehydratedError = USCErrors::Error(USCJsonConvert::ToJsonValue(obj->GetObjectField("error")));
 				}
-
-				TSharedPtr<FJsonValue> data = MakeShareable(new FJsonValueNull);
-				if (obj->HasField("data") && obj->GetObjectField("data"))
+				
+				TSharedPtr<FJsonValue> data = nullptr;
+				if (obj->HasField("data"))
 				{
+					FString result = USCJsonConvert::ToJsonString(obj->GetObjectField("data"));
 					data = USCJsonConvert::ToJsonValue(obj->GetObjectField("data"));
 				}
 
@@ -332,19 +334,23 @@ void USCTransport::close(int32 code, TSharedPtr<FJsonValue> data)
 	{
 		TSharedPtr<FJsonObject> packet = MakeShareable(new FJsonObject);
 		packet->SetNumberField("code", code);
-		if (data.IsValid())
+		if (data.IsValid() && data->Type != EJson::Null)
 		{
 			packet->SetField("data", data);
 		}
+		TSharedPtr<FJsonObject> dataobj = MakeShareable(new FJsonObject);
+		dataobj->SetStringField("event", "#disconnect");
+		dataobj->SetObjectField("data", packet);
+		FString str = serializeObject(USCJsonConvert::ToJsonValue(dataobj));
+		
+		socket->send(str);
 
-		emit("#disconnect", USCJsonConvert::ToJsonValue(packet));
-
-		_onClose(code, data ? USCJsonConvert::ToJsonString(data) : "");
+		_onClose(code, data.IsValid() ? USCJsonConvert::ToJsonString(data) : "");
 		socket->close(code);
 	}
 	else if (state == ESocketClusterState::CONNECTING)
 	{
-		_onClose(code, data ? USCJsonConvert::ToJsonString(data) : "");
+		_onClose(code, data.IsValid() ? USCJsonConvert::ToJsonString(data) : "");
 		socket->close(code);
 	}
 }
@@ -353,7 +359,11 @@ int32 USCTransport::emitObject(USCEventObject* eventObject, TSharedPtr<FJsonObje
 {
 	TSharedPtr<FJsonObject> simpleEventObject = MakeShareable(new FJsonObject);
 	simpleEventObject->SetStringField("event", eventObject->event);
-	simpleEventObject->SetField("data", eventObject->data);
+	if (eventObject->data.IsValid())
+	{
+		simpleEventObject->SetField("data", eventObject->data);
+	}
+	
 
 	if (eventObject->callback)
 	{
@@ -389,7 +399,10 @@ int32 USCTransport::emit(FString event, TSharedPtr<FJsonValue> data, TSharedPtr<
 
 	USCEventObject* eventObject = NewObject<USCEventObject>();
 	eventObject->event = event;
-	eventObject->data = data;
+	if (data.IsValid())
+	{
+		eventObject->data = data;
+	}
 	eventObject->callback = callback;
 
 	if (callback && !opts->HasField("noTimeout"))
@@ -429,7 +442,7 @@ void USCTransport::send(FString data)
 	}
 	else
 	{
-		socket->send(data);
+		socket->sendBuffer(data);
 	}
 }
 
