@@ -4,6 +4,7 @@
 #include "Runtime/Engine/Classes/Engine/Engine.h"
 #include "Runtime/Core/Public/Misc/Base64.h"
 #include "Runtime/Engine/Classes/Kismet/KismetSystemLibrary.h"
+#include "SCJsonValue.h"
 #include "SCJsonObject.h"
 #include "SCJsonConvert.h"
 #include "SC_Formatter.h"
@@ -34,46 +35,49 @@ USCClientSocket::USCClientSocket()
 	_localEvents.Add("removeAuthToken", 1);
 	_localEvents.Add("subscribeRequest", 1);
 
-	_privateEventHandlerMap.Add("#publish", [&](TSharedPtr<FJsonObject> data, USCResponse* response)
+	_privateEventHandlerMap.Add("#publish", [&](TSharedPtr<FJsonValue> data, USCResponse* response)
 	{
-		FString undecoratedChannelName = _undecorateChannelName(data->GetStringField("channel"));
+		TSharedPtr<FJsonObject> dataObj = data->AsObject();
+		FString undecoratedChannelName = _undecorateChannelName(dataObj->GetStringField("channel"));
 		bool IsSubscribed = isSubscribed(undecoratedChannelName, true);
 		if (IsSubscribed)
 		{
 			if (_channelEmitter.Contains(undecoratedChannelName) && _channelEmitter.FindRef(undecoratedChannelName))
 			{
-				_channelEmitter.FindRef(undecoratedChannelName)(USCJsonConvert::ToJsonValue(data->GetObjectField("data")));
+				_channelEmitter.FindRef(undecoratedChannelName)(USCJsonConvert::JsonStringToJsonValue(dataObj->GetStringField("data")));
 			}
 		}
 	});
-	_privateEventHandlerMap.Add("#kickOut", [&](TSharedPtr<FJsonObject> data, USCResponse* response)
+	_privateEventHandlerMap.Add("#kickOut", [&](TSharedPtr<FJsonValue> data, USCResponse* response)
 	{
-		FString undecoratedChannelName = _undecorateChannelName(data->GetStringField("channel"));
+		TSharedPtr<FJsonObject> dataObj = data->AsObject();
+		FString undecoratedChannelName = _undecorateChannelName(dataObj->GetStringField("channel"));
 		USCChannel* channel = channels.FindRef(undecoratedChannelName);
 		if (channel)
 		{
 			TSharedPtr<FJsonObject> obj = MakeShareable(new FJsonObject);
-			obj->SetStringField("message", data->GetStringField("message"));
+			obj->SetStringField("message", dataObj->GetStringField("message"));
 			obj->SetStringField("channelName", undecoratedChannelName);
 			
 			if (Emitter.Contains("kickOut") && Emitter.FindRef("kickOut"))
 			{
-				Emitter.FindRef("kickOut")(USCJsonConvert::ToJsonValue(data->GetObjectField("data")), nullptr);
+				Emitter.FindRef("kickOut")(USCJsonConvert::ToJsonValue(obj), nullptr);
 			}
 
 			if (channel->Emitter.Contains("kickOut") && channel->Emitter.FindRef("kickOut"))
 			{
-				channel->Emitter.FindRef("kickOut")(USCJsonConvert::ToJsonValue(data->GetObjectField("data")));
+				channel->Emitter.FindRef("kickOut")(USCJsonConvert::ToJsonValue(obj));
 			}
 		
 			_triggerChannelUnsubscribe(channel);
 		}
 	});
-	_privateEventHandlerMap.Add("#setAuthToken", [&](TSharedPtr<FJsonObject> data, USCResponse* response)
+	_privateEventHandlerMap.Add("#setAuthToken", [&](TSharedPtr<FJsonValue> data, USCResponse* response)
 	{
 		if (data.IsValid())
 		{
-			auth->saveToken(authTokenName, data->GetStringField("token"), [&](TSharedPtr<FJsonValue> err, FString token)
+			TSharedPtr<FJsonObject> dataObj = data->AsObject();
+			auth->saveToken(authTokenName, dataObj->GetStringField("token"), [&](TSharedPtr<FJsonValue> err, FString token)
 			{
 				if (err)
 				{
@@ -92,7 +96,7 @@ USCClientSocket::USCClientSocket()
 			response->error(USCErrors::InvalidMessageError("No token data provided by #setAuthToken event"));
 		}
 	});
-	_privateEventHandlerMap.Add("#removeAuthToken", [&](TSharedPtr<FJsonObject> data, USCResponse* response)
+	_privateEventHandlerMap.Add("#removeAuthToken", [&](TSharedPtr<FJsonValue> data, USCResponse* response)
 	{
 		auth->removeToken(authTokenName, [&](TSharedPtr<FJsonValue> err, FString oldToken)
 		{
@@ -112,18 +116,14 @@ USCClientSocket::USCClientSocket()
 			}
 		});
 	});
-	_privateEventHandlerMap.Add("#disconnect", [&](TSharedPtr<FJsonObject> data, USCResponse* response)
+	_privateEventHandlerMap.Add("#disconnect", [&](TSharedPtr<FJsonValue> data, USCResponse* response)
 	{
-		TSharedPtr<FJsonValue> dataValue = nullptr;
-		if (data->HasField("data"))
+		TSharedPtr<FJsonObject> dataObj = nullptr;
+		if (data.IsValid() && data->Type == EJson::Object)
 		{
-			dataValue = USCJsonConvert::ToJsonValue(data->GetObjectField("data"));
+			dataObj = data->AsObject();
 		}
-		else
-		{
-			dataValue = MakeShareable(new FJsonValueNull);
-		}
-		transport->close(data->GetNumberField("code"), dataValue);
+		transport->close(dataObj->GetNumberField("code"), USCJsonConvert::JsonStringToJsonValue(dataObj->GetStringField("data")));
 	});
 }
 
@@ -368,7 +368,7 @@ void USCClientSocket::connect()
 		transport = NewObject<USCTransport>(this);
 		transport->create(auth, codec, options);
 
-		transport->onopen = [&](TSharedPtr<FJsonObject> status)
+		transport->onopen = [&](TSharedPtr<FJsonValue> status)
 		{
 			state = ESocketClusterState::OPEN;
 			_onSCOpen(status);
@@ -438,10 +438,6 @@ void USCClientSocket::destroyBlueprint(int32 code, USCJsonValue* data)
 	if (data != nullptr)
 	{
 		value = data->GetRootValue();
-	}
-	else
-	{
-		value = MakeShareable(new FJsonValueNull);
 	}
 	destroy(code, value);
 }
@@ -730,17 +726,18 @@ void USCClientSocket::_tryReconnect(float initialDelay)
 	GetWorld()->GetTimerManager().SetTimer(_reconnectTimeoutHandle, _reconnectTimeoutRef, timeout, false);
 }
 
-void USCClientSocket::_onSCOpen(TSharedPtr<FJsonObject> status)
+void USCClientSocket::_onSCOpen(TSharedPtr<FJsonValue> status)
 {
 	preparingPendingSubscriptions = true;
-	if (status.IsValid())
+	if (status.IsValid() && status->Type == EJson::Object)
 	{
-		id = status->GetStringField("id");
-		pingTimeout = (status->GetNumberField("pingTimeout") / 1000);
+		TSharedPtr<FJsonObject> statusObj = status->AsObject();
+;		id = statusObj->GetStringField("id");
+		pingTimeout = (statusObj->GetNumberField("pingTimeout") / 1000);
 		transport->pingTimeout = pingTimeout;
-		if (status->GetBoolField("isAuthenticated"))
+		if (statusObj->GetBoolField("isAuthenticated"))
 		{
-			_changeToAuthenticatedState(status->GetStringField("authToken"));
+			_changeToAuthenticatedState(statusObj->GetStringField("authToken"));
 		}
 		else
 		{
@@ -761,7 +758,7 @@ void USCClientSocket::_onSCOpen(TSharedPtr<FJsonObject> status)
 	
 	if (Emitter.Contains("connect") && Emitter.FindRef("connect"))
 	{
-		Emitter.FindRef("connect")(USCJsonConvert::ToJsonValue(status), nullptr);
+		Emitter.FindRef("connect")(status, nullptr);
 	}
 
 	if (state == ESocketClusterState::OPEN)
@@ -896,10 +893,10 @@ void USCClientSocket::_onSCEvent(FString event, TSharedPtr<FJsonValue> data, USC
 {
 	if (_privateEventHandlerMap.Contains(event))
 	{
-		TFunction<void(TSharedPtr<FJsonObject>, USCResponse*)> handler = _privateEventHandlerMap[event];
+		TFunction<void(TSharedPtr<FJsonValue>, USCResponse*)> handler = _privateEventHandlerMap[event];
 		if (handler)
 		{
-			handler(data->AsObject(), res);
+			handler(data, res);
 		}
 	}
 	else
@@ -1445,16 +1442,14 @@ USCChannel* USCClientSocket::subscribeBlueprint(const FString& channelName, cons
 	TSharedPtr<FJsonObject> opts = MakeShareable(new FJsonObject);
 	opts->SetBoolField("waitForAuth", waitForAuth);
 
-	TSharedPtr<FJsonValue> dataValue = nullptr;
+	TSharedPtr<FJsonValue> dataValue;
 	if (data != nullptr)
 	{
 		dataValue = data->GetRootValue();
+		opts->SetField("data", dataValue);
 	}
-	else
-	{
-		dataValue = MakeShareable(new FJsonValueNull);
-	}
-	opts->SetField("data", dataValue);
+
+	
 	opts->SetBoolField("batch", batch);
 
 	return subscribe(channelName, opts);
@@ -1705,6 +1700,7 @@ void USCClientSocket::watchBlueprintCallback(const FString& handler, UObject* ta
 			USCJsonValue* DataValue = NewObject<USCJsonValue>();
 			DataValue->SetRootValue(data);
 			Args.Arg01 = DataValue;
+			target->ProcessEvent(Function, &Args);
 			
 		}
 		else if (FirstParam.Equals("FString"))
