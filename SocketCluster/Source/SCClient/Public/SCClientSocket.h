@@ -161,7 +161,7 @@ class SCCLIENT_API USCClientSocket : public UObject
 	TArray<USCEventObject*> _emitBuffer;
 
 	/** List of private events handled internally */
-	TMap<FString, TFunction<void(TSharedPtr<FJsonObject>, USCResponse*)>> _privateEventHandlerMap;
+	TMap<FString, TFunction<void(TSharedPtr<FJsonValue>, USCResponse*)>> _privateEventHandlerMap;
 
 	/** Event emitter to handle events */
 	TMultiMap<FString, TFunction<void(TSharedPtr<FJsonValue>, USCResponse*)>> Emitter;
@@ -327,7 +327,7 @@ private:
 
 	void _tryReconnect(float initialDelay = NULL);
 
-	void _onSCOpen(TSharedPtr<FJsonObject> status);
+	void _onSCOpen(TSharedPtr<FJsonValue> status);
 
 	void _onSCError(TSharedPtr<FJsonValue> err);
 
