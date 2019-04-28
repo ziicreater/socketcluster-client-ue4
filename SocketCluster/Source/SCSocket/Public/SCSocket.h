@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "Tickable.h"
-#include "Sockets.h"
 #include "SCJsonObject.h"
 #include "SCSocket.generated.h"
 
