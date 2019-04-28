@@ -134,17 +134,52 @@ public:
 	void publish(TSharedPtr<FJsonValue> data = nullptr, TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback = nullptr);
 
 	/**
-	* Capture any data which is published to this channel. The handler is a function in the form handler(data).
+	* Add a handler for a particular event on this channel.
+	* The handler is a function in the form:
+	* - First Parameter	: USCJsonValue* (data)
 	*
-	* @param handler			The name of the function to be called when data is received on the channel.
-	* @param handlerTarget		Optional, defaults to self, The class location of the handler function.
+	* @param event					The name of the event.
+	* @param handler				The name of the function to be called when the event is called.
+	* @param handlerTarget			Optional, defaults to self, The class location of the handler function.
+	*/
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "On", DefaultToSelf = "handlerTarget"), Category = "SocketCluster|Channel")
+		void onBlueprint(const FString& event, const FString& handler = FString(""), UObject* handlerTarget = nullptr);
+
+private:
+
+	void onBlueprintHandler(const FString& event, const FString& handler, UObject* handlerTarget, TSharedPtr<FJsonValue> data);
+
+public:
+
+	/**
+	* Add a handler for a particular event on this channel.
+	* The handler is a function in the form: handler(data)
+	*
+	* @param event					The name of the event.
+	* @param handler				handler(data)
+	*/
+	void on(FString event, TFunction<void(TSharedPtr<FJsonValue>)> handler = nullptr);
+
+	/**
+	* Unbind a previously attached event handler from this channel.
+	*
+	* @param event		The name of the event to unbind.
+	*/
+	void off(FString event);
+
+	/**
+	* Capture any data which is published to this channel.
 	*
 	* The handler is a function in one of the following forms:
 	* - First Parameter	: USCJsonValue* (data)
 	* or
 	* - First Parameter : FString (data)
+	*
+	* @param handler			The name of the function to be called when data is received on the channel.
+	* @param handlerTarget		Optional, defaults to self, The class location of the handler function.
+	*
 	*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Watch", DefaultToSelf = "CallbackTarget"), Category = "SocketCluster|Channel")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Watch", DefaultToSelf = "handlerTarget"), Category = "SocketCluster|Channel")
 		void watchBlueprint(const FString& handler, UObject* handlerTarget);
 
 	/**
@@ -155,7 +190,7 @@ public:
 	void watch(TFunction<void(TSharedPtr<FJsonValue>)> handler);
 
 	/** Unbind all handlers from this channel.*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "UnWatch", DefaultToSelf = "CallbackTarget"), Category = "SocketCluster|Channel")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "UnWatch"), Category = "SocketCluster|Channel")
 		void unwatch();
 
 	/** Get a list of functions which are currently observing this channel. */
