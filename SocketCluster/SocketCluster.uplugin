@@ -8,7 +8,7 @@
 	"Category": "Networking",
 	"CreatedBy": "CodeWare Games",
 	"CreatedByURL": "https://www.codewaregames.com/",
-	"DocsURL": "https://github.com/ziicreater/socketcluster-client-ue4",
+	"DocsURL": "https://github.com/ziicreater/socketcluster-client-ue4/wiki",
 	"MarketplaceURL": "",
 	"SupportURL": "https://gitter.im/SocketCluster/socketcluster",
 	"EnabledByDefault": true,
