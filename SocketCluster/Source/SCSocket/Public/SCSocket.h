@@ -35,13 +35,15 @@ class SCSOCKET_API USCSocket : public UObject, public FTickableGameObject
 
 public:
 
+	TArray<FString> _buffer;
+
 	ESocketState readyState;
 
 	TFunction<void()> onopen;
 
 	TFunction<void(const TSharedPtr<FJsonObject>)> onclose;
 
-	TFunction<void(const TSharedPtr<FJsonObject>)> onmessage;
+	TFunction<void(const FString&)> onmessage;
 
 	TFunction<void(const TSharedPtr<FJsonValue>)> onerror;
 
@@ -53,8 +55,8 @@ public:
 
 	void send(FString data);
 
+	void sendBuffer(FString data);
+
 	void close(int32 code);
 
 };
-
-

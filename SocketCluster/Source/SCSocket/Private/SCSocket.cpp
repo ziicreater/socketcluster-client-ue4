@@ -135,13 +135,23 @@ int USCSocket::ws_service_callback(lws* wsi, lws_callback_reasons reason, void* 
 	break;
 	case LWS_CALLBACK_CLIENT_RECEIVE:
 	{
-		TSharedPtr<FJsonObject> Message = MakeShareable(new FJsonObject);
-		Message->SetStringField("data", UTF8_TO_TCHAR(in));
+		FString message = UTF8_TO_TCHAR(in);
 		if (SCSocket->onmessage)
 		{
-			SCSocket->onmessage(Message);
+			SCSocket->onmessage(message);
 		}
 	}
+	break;
+	case LWS_CALLBACK_CLIENT_WRITEABLE:
+	{
+		if (SCSocket->_buffer.Num() > 0)
+		{
+			std::string strData = TCHAR_TO_UTF8(*SCSocket->_buffer[0]);
+			ws_write_back(wsi, strData.c_str(), strData.size());
+			SCSocket->_buffer.RemoveAt(0);
+		}
+	}
+	break;
 	}
 	return 0;
 }
@@ -295,13 +305,16 @@ void USCSocket::createWebSocket(FString uri, TSharedPtr<FJsonObject> options)
 
 void USCSocket::send(FString data)
 {
-	if (readyState == ESocketState::OPEN)
-	{
-		std::string strData = TCHAR_TO_UTF8(*data);
-		ws_write_back(socket, strData.c_str(), strData.size());
-	}
+	std::string strData = TCHAR_TO_UTF8(*data);
+	ws_write_back(socket, strData.c_str(), strData.size());
+}
+
+void USCSocket::sendBuffer(FString data)
+{
+	_buffer.Add(data);	
 }
 
 void USCSocket::close(int32 code)
 {
+
 }
