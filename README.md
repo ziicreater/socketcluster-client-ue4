@@ -30,7 +30,7 @@
   <a href="#dependencies">Dependencies</a>
 </p>
 
-![screenshot](https://image.ibb.co/nyVvXe/test.gif)
+![screenshot](https://i.ibb.co/smX8YVF/socketcluster-ue4.gif)
 
 ## OS Supported
 
@@ -44,12 +44,21 @@
 
 *Note : Any OS currently not supported will be added in the future.*
 
+## Current Roadmap
+- Publish To UE4 Marketplace
+- Write Documentation For Blueprint & C++
+- Connection to a secure connection (https / wss) not fully working yet
+- Release Example Projects To Marketplace
+
 ## UE4 Versions
 
-This plugin has been tested with following Unreal Engine 4 versions and won't work with a version lower then >4.19
+This plugin has been tested with following Unreal Engine 4 versions and won't work with a version lower then >4.20
 
-- 4.19
 - 4.20
+- 4.21
+- 4.22
+
+*Note : We will only support the latest UE4 Engine
 
 ## Download And Install
 
@@ -61,27 +70,10 @@ Coming Soon...
 
 ### 2 - Manual Download & Install
 
-Download the latest release [here](https://github.com/ziicreater/socketcluster-client-ue4/releases)
+1. Download the latest release [here](https://github.com/ziicreater/socketcluster-client-ue4/releases) make sure you download the compiled source code Example : SocketCluster-v0.2-UE4.21.zip if you download the source code from the master branch you have to compile the source code your self.
 
-Coming Soon...
-
-## How To Use
-
-There are a couple of ways to use this plugin.
-
-### 1 - Blueprints
-
-Coming Soon...
-
-### 2 - Code
-
-Your project needs to be a C++ project in order to use this plugin by code, if you wan't to use this plugin by code find out [here](https://wiki.unrealengine.com/How_to_Convert_a_BP/Content_Project_to_a_C%2B%2B_Project_in_8_Steps) on how to convert your blueprint project to a C++ project.
-
-Coming Soon...
-
-```
-Code Example
-```
+2. Extract Source code into Engine Plugin Directory Example : C:\Program Files\Epic Games\UE_4.21\Engine\Plugins
+![screenshot](https://i.ibb.co/F4B4m92/socketcluster-extract.gif)
 
 ## Dependencies
 
