@@ -408,7 +408,7 @@ public:
 	* @param handler				Optional, The name of the function to be called when the event is called.
 	* @param handlerTarget			Optional, defaults to self, The class location of the handler function.
 	*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "On", DefaultToSelf = "HandlerTarget"), Category = "SocketCluster|Client")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "On", DefaultToSelf = "handlerTarget"), Category = "SocketCluster|Client")
 		void onBlueprint(const FString& event, const FString& handler = FString(""), UObject* handlerTarget = nullptr);
 
 private:
