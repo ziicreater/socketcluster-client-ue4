@@ -9,7 +9,7 @@
 	"CreatedBy": "CodeWare Games",
 	"CreatedByURL": "https://www.codewaregames.com/",
 	"DocsURL": "https://github.com/ziicreater/socketcluster-client-ue4/wiki",
-	"MarketplaceURL": "",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/a27f2927912841f8883adb36a135b2e3",
 	"SupportURL": "https://gitter.im/SocketCluster/socketcluster",
 	"EnabledByDefault": true,
 	"CanContainContent": false,
