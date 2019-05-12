@@ -20,6 +20,7 @@
   <a href="https://github.com/ziicreater/socketcluster-client-ue4/blob/master/LICENSE">
     <img src="https://img.shields.io/github/license/ziicreater/socketcluster-client-ue4.svg">
   </a>
+  <img src="https://img.shields.io/github/downloads/ziicreater/socketcluster-client-ue4/total.svg">
 </p>
 
 <p align="center">
