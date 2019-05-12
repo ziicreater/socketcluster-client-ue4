@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/ziicreater/socketcluster-client-ue4/releases">
-    <img src="https://badge.fury.io/gh/ziicreater%2Fsocketcluster-client-ue4.svg" alt="Releases">
+    <img src="https://img.shields.io/github/release/ziicreater/socketcluster-client-ue4.svg" alt="Releases">
   </a>
   <a href="https://gitter.im/SocketCluster/socketcluster" target="_blank">
     <img src="https://badges.gitter.im/Join%20Chat.svg" alt="Join Chat">
@@ -27,7 +27,7 @@
   <a href="#os-supported">OS Supported</a> •
   <a href="#version-supported">UE4 Versions</a> •
   <a href="#download-and-install">Download & Install</a> •
-  <a href="#how-to-use">How To Use</a> •
+  <a href="https://github.com/ziicreater/socketcluster-client-ue4/wiki">Documentation</a> •
   <a href="#dependencies">Dependencies</a>
 </p>
 
