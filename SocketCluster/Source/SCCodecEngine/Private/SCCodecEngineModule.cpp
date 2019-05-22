@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
 
 #include "SCCodecEngineModule.h"
 

@@ -1,6 +1,5 @@
 // Modifications Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
 // Modifications Copyright 2018-current Getnamo. All Rights Reserved
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 // Copyright 2014 Vladimir Alyamkin. All Rights Reserved.
 
 #pragma once

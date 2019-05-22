@@ -1,6 +1,5 @@
+// Modifications Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
 // Modifications Copyright 2018-current Getnamo. All Rights Reserved
-
-
 // Copyright 2014 Vladimir Alyamkin. All Rights Reserved.
 
 using System.IO;
@@ -9,13 +8,14 @@ namespace UnrealBuildTool.Rules
 {
 	public class SCJson : ModuleRules
 	{
-		public SCJson(ReadOnlyTargetRules Target) : base(Target)
+
+        public SCJson(ReadOnlyTargetRules Target) : base(Target)
         {
 			PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
-					"SCJson/Private",
+                    "ThirdParty/SCJson/Private",
 					// ... add other private include paths required here ...
 				});
 
