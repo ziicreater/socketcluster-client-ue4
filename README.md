@@ -46,10 +46,11 @@
 *Note : Any OS currently not supported will be added in the future.*
 
 ## Current Roadmap
-- Publish To UE4 Marketplace
-- Write Documentation For Blueprint & C++
-- Connection to a secure connection (https / wss) not fully working yet
+- Write Documentation For Blueprint
+- Write Documentation For C++
 - Release Example Projects To Marketplace
+- Connection to a secure connection (https / wss) not fully working yet
+- Add more platforms,
 
 ## UE4 Versions
 
@@ -58,8 +59,9 @@ This plugin has been tested with following Unreal Engine 4 versions and won't wo
 - 4.20
 - 4.21
 - 4.22
+- 4.23
 
-*Note : We will only support the latest UE4 Engine
+*Note : We will only support the latest UE4 Engine version.
 
 ## Download And Install
 
@@ -67,7 +69,10 @@ There are two ways to download and install this plugin.
 
 ### 1 - Using The Marketplace
 
-Coming Soon...
+1. Search for SocketCluster client or look under code plugins
+
+2. Press **Install To Engine** wait for it to download and install and you are ready to use SocketCluster in UE4
+![screenshot](https://i.ibb.co/1Twb7pt/socketcluster-marketplace-install.png)
 
 ### 2 - Manual Download & Install
 
