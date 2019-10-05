@@ -10,6 +10,7 @@
 #include "SCJsonObject.h"
 #include "SCClientSocket.h"
 #include "SCClientModule.h"
+#include "Interfaces/IPluginManager.h"
 
 FString USCClient::GetMultiplexId(TSharedPtr<FJsonObject> options)
 {
@@ -58,7 +59,8 @@ TMap<FString, USCClientSocket*> USCClient::Clients()
 
 FString USCClient::Version()
 {
-	return FString("0.4 Beta");
+	FPluginDescriptor uplugin = IPluginManager::Get().FindPlugin(TEXT("SocketCluster"))->GetDescriptor();
+	return FString(uplugin.VersionName);
 }
 
 void USCClient::Destroy(USCClientSocket* Socket)

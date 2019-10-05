@@ -14,6 +14,7 @@ public class SCClient : ModuleRules
                 "Core",
                 "CoreUObject",
                 "Engine",
+                "Projects",
                 "Json",
                 "SCSocket",
                 "SCCodecEngine",
