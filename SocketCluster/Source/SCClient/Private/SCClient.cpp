@@ -58,7 +58,7 @@ TMap<FString, USCClientSocket*> USCClient::Clients()
 
 FString USCClient::Version()
 {
-	return FString("0.3 Beta");
+	return FString("0.4 Beta");
 }
 
 void USCClient::Destroy(USCClientSocket* Socket)
