@@ -924,25 +924,29 @@ void USCClientSocket::_flushEmitBuffer()
 	for (auto& eventObject : currentNodes)
 	{
 		transport->emitObject(eventObject);
+		GetWorld()->GetTimerManager().ClearTimer(eventObject->timeoutHandle);
 		_emitBuffer.Remove(eventObject);
 	}
 }
 
 void USCClientSocket::_handleEventAckTimeout(USCEventObject* eventObject)
 {
-	clearTimeout(eventObject->timeoutHandle);
-
-	TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback = eventObject->callback;
-	if (callback)
+	if (IsValid(eventObject))
 	{
-		eventObject->callback = nullptr;
-		TSharedPtr<FJsonValue> error = USCErrors::TimeoutError("Event response for '" + eventObject->event + "' timed out");
-		callback(error, nullptr);
-	}
+		clearTimeout(eventObject->timeoutHandle);
 
-	if (eventObject->cid != 0)
-	{
-		transport->cancelPendingResponse(eventObject->cid);
+		TFunction<void(TSharedPtr<FJsonValue>, TSharedPtr<FJsonValue>)> callback = eventObject->callback;
+		if (callback)
+		{
+			eventObject->callback = nullptr;
+			TSharedPtr<FJsonValue> error = USCErrors::TimeoutError("Event response for '" + eventObject->event + "' timed out");
+			callback(error, nullptr);
+		}
+
+		if (eventObject->cid != 0)
+		{
+			transport->cancelPendingResponse(eventObject->cid);
+		}
 	}
 }
 
