@@ -122,6 +122,16 @@ int USCSocket::ws_service_callback(lws* wsi, lws_callback_reasons reason, void* 
 		}
 	}
 	break;
+	case LWS_CALLBACK_CLIENT_CLOSED:
+		SCSocket->readyState = ESocketState::CLOSED;
+		if (SCSocket->onclose)
+		{
+			TSharedPtr<FJsonObject> Error = MakeShareable(new FJsonObject);
+			Error->SetNumberField("code", 1006);
+			Error->SetStringField("reason", "");
+			SCSocket->onclose(Error);
+		}
+	break;
 	case LWS_CALLBACK_CLOSED:
 	{
 		if (SCSocket->onclose)

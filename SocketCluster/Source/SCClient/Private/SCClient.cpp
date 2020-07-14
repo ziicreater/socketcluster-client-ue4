@@ -80,7 +80,7 @@ USCClientSocket* USCClient::Create(
 	const bool Secure,
 	const int32 Port,
 	const FString& Path,
-	const ESocketClusterProtocolVersion ProtocolVersion,
+	const int32 ProtocolVersion,
 	const float AckTimeOut,
 	const bool AutoConnect,
 	const bool AutoReconnect,
@@ -114,7 +114,7 @@ USCClientSocket* USCClient::Create(
 	options->SetBoolField("secure", Secure);
 	options->SetNumberField("port", GetPort(Port, Secure, isUrlSecure(Hostname)));
 	options->SetStringField("path", Path);
-	options->SetNumberField("protocolVersion", (uint8)ProtocolVersion);
+	options->SetNumberField("protocolVersion", ProtocolVersion);
 	options->SetNumberField("ackTimeout", AckTimeOut);
 	options->SetBoolField("autoConnect", AutoConnect);
 	options->SetBoolField("autoReconnect", AutoReconnect);

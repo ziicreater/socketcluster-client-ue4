@@ -16,14 +16,6 @@
 
 class USCTransport;
 
-/** The Protocol Version of the client */
-UENUM(BlueprintType, DisplayName = "SocketClusterProtocolVersion")
-enum class ESocketClusterProtocolVersion : uint8
-{
-	SocketCluster,
-	ASyngular
-};
-
 /** The states of the socket */
 UENUM(BlueprintType, DisplayName = "SocketClusterState")
 enum class ESocketClusterState : uint8

@@ -272,7 +272,7 @@ void USCTransport::_onMessage(FString message)
 
 	TSharedPtr<FJsonValue> obj = decode(message);
 
-	if (options->GetNumberField("protocolVersion") == 0 && obj->Type == EJson::String && obj->AsString().Equals("#1"))
+	if (options->GetNumberField("protocolVersion") == 1 && obj->Type == EJson::String && obj->AsString().Equals("#1"))
 	{
 		_resetPingTimeout();
 		if (socket->readyState == ESocketState::OPEN)
@@ -280,7 +280,7 @@ void USCTransport::_onMessage(FString message)
 			sendObject(MakeShareable(new FJsonValueString("#2")));
 		}
 	}
-	else if(options->GetNumberField("protocolVersion") == 1 && obj->Type == EJson::Null && obj->IsNull())
+	else if(options->GetNumberField("protocolVersion") == 2 && obj->Type == EJson::Null && obj->IsNull())
 	{
 		_resetPingTimeout();
 		if (socket->readyState == ESocketState::OPEN)

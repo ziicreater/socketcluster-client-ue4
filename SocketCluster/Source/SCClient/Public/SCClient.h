@@ -88,7 +88,7 @@ public:
 			const bool Secure = false,
 			const int32 Port = 80,
 			const FString& Path = FString(TEXT("/socketcluster/")),
-			const ESocketClusterProtocolVersion ProtocolVersion = ESocketClusterProtocolVersion::SocketCluster,
+			const int32 ProtocolVersion = 2,
 			const float AckTimeOut = 10.0f,
 			const bool AutoConnect = true,
 			const bool AutoReconnect = true,
