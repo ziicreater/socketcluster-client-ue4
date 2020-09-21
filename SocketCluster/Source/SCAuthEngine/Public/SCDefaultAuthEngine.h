@@ -3,28 +3,27 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
 #include "SCAuthEngine.h"
-#include "SCJsonValue.h"
 #include "SCDefaultAuthEngine.generated.h"
 
 /**
-* The SocketCluster DefaultAuthEngine
-*/
+ * 
+ */
 UCLASS()
 class SCAUTHENGINE_API USCDefaultAuthEngine : public USCAuthEngine
 {
+
 	GENERATED_BODY()
-	
+
 protected:
 
-	TMap<FString, FString> Storage;
+	TMap<FString, FString> localStorage;
 
 public:
 
-	virtual void saveToken(FString name, FString token, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback) override;
+	virtual FString saveToken(FString name, FString token) override;
 
-	virtual void removeToken(FString name, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback) override;
+	virtual FString removeToken(FString name) override;
 
-	virtual void loadToken(FString name, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback) override;
+	virtual FString loadToken(FString name) override;
 };

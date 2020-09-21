@@ -1,10 +1,11 @@
-// Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SCSocketModule.h"
+#include "WebSocketsModule.h"
 
 #define LOCTEXT_NAMESPACE "FSCSocketModule"
 
-DEFINE_LOG_CATEGORY(LogSCSocket);
+DEFINE_LOG_CATEGORY(SCSocket);
 
 void FSCSocketModule::StartupModule()
 {
@@ -18,5 +19,5 @@ void FSCSocketModule::ShutdownModule()
 }
 
 #undef LOCTEXT_NAMESPACE
-
+	
 IMPLEMENT_MODULE(FSCSocketModule, SCSocket)

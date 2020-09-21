@@ -1,35 +1,44 @@
 // Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
 
+
 #include "SCDefaultAuthEngine.h"
-#include "SCJsonObject.h"
-#include "SCAuthEngineModule.h"
+#include "Async/Async.h"
 
-void USCDefaultAuthEngine::saveToken(FString name, FString token, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback)
+FString USCDefaultAuthEngine::saveToken(FString name, FString token)
 {
-	Storage.Add(name, token);
 
-	callback(nullptr, token);
-}
+#if !UE_BUILD_SHIPPING
+	UE_LOG(SCAuthEngine, Log, TEXT("Saving Token : Name : %s Token : %s"), *name, *token);
+#endif
 
-void USCDefaultAuthEngine::removeToken(FString name, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback)
-{
-	FString token;
-
-	loadToken(name, [&](TSharedPtr<FJsonValue> error, FString authToken) {
-		token = authToken;
+	auto Promise = Async(EAsyncExecution::TaskGraph, [&] {
+		localStorage.Add(name, token);
+		return localStorage.FindRef(name);
 	});
-
-	Storage.Remove(name);
-
-	callback(nullptr, token);
+	return Promise.Get();
 }
 
-void USCDefaultAuthEngine::loadToken(FString name, TFunction<void(TSharedPtr<FJsonValue>, FString)> callback)
+FString USCDefaultAuthEngine::removeToken(FString name)
 {
-	FString token;
-	
-	token = Storage.FindRef(name);
-	
-	callback(nullptr, token);
+#if !UE_BUILD_SHIPPING
+	UE_LOG(SCAuthEngine, Log, TEXT("Removing Token : Name : %s"), *name);
+#endif
 
+	FString token = loadToken(name);
+
+	localStorage.Remove(name);
+
+	return token;
+}
+
+FString USCDefaultAuthEngine::loadToken(FString name)
+{
+#if !UE_BUILD_SHIPPING
+	UE_LOG(SCAuthEngine, Log, TEXT("Loading Token : Name : %s"), *name);
+#endif
+
+	auto Promise = Async(EAsyncExecution::TaskGraph, [&] {
+		return localStorage.FindRef(name);
+	});
+	return Promise.Get();
 }

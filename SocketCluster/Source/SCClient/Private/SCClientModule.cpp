@@ -1,10 +1,8 @@
-// Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SCClientModule.h"
 
 #define LOCTEXT_NAMESPACE "FSCClientModule"
-
-DEFINE_LOG_CATEGORY(LogSCClient);
 
 void FSCClientModule::StartupModule()
 {
@@ -18,5 +16,5 @@ void FSCClientModule::ShutdownModule()
 }
 
 #undef LOCTEXT_NAMESPACE
-
+	
 IMPLEMENT_MODULE(FSCClientModule, SCClient)

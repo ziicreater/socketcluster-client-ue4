@@ -1,11 +1,11 @@
-// Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/Core/Public/Modules/ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogSCAuthEngine, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(SCAuthEngine, Log, All);
 
 class FSCAuthEngineModule : public IModuleInterface
 {

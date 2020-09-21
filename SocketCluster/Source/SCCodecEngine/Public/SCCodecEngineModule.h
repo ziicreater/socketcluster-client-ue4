@@ -1,10 +1,11 @@
-// Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Runtime/Core/Public/Modules/ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogSCCodecEngine, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(SCCodecEngine, Log, All);
 
 class FSCCodecEngineModule : public IModuleInterface
 {

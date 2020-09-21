@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
-#include "Tickable.h"
-#include "SCJsonObject.h"
+#include "WebSocketsModule.h"
+#include "IWebSocket.h"
+#include "Templates/SharedPointer.h"
 #include "SCSocket.generated.h"
 
 enum class ESocketState : uint8
@@ -16,47 +17,33 @@ enum class ESocketState : uint8
 };
 
 /**
-* The SocketCluster Socket
-*/
+ * The SocketCluster Socket
+ */
 UCLASS()
-class SCSOCKET_API USCSocket : public UObject, public FTickableGameObject
+class SCSOCKET_API USCSocket : public UObject
 {
 	GENERATED_BODY()
 
-	virtual void Tick(float DeltaTime) override;
+private:
 
-	virtual bool IsTickable() const override;
-
-	virtual TStatId GetStatId() const override;
-
-	struct lws_context* context;
-
-	struct lws* socket;
+	TSharedPtr<IWebSocket> Socket;
 
 public:
 
-	TArray<FString> _buffer;
-
-	ESocketState readyState;
+	ESocketState SocketState;
 
 	TFunction<void()> onopen;
 
-	TFunction<void(const TSharedPtr<FJsonObject>)> onclose;
+	TFunction<void(const FString&)> onerror;
+
+	TFunction<void(int32, const FString&, bool)> onclose;
 
 	TFunction<void(const FString&)> onmessage;
 
-	TFunction<void(const TSharedPtr<FJsonValue>)> onerror;
+	void CreateWebSocket(FString Url);
 
-	static int ws_service_callback(struct lws* wsi, enum lws_callback_reasons reason, void* user, void* in, size_t len);
+	void Send(FString Message);
 
-	static int ws_write_back(lws* wsi, const char* str, int str_size_in);
-
-	void createWebSocket(FString uri, TSharedPtr<FJsonObject> options);
-
-	void send(FString data);
-
-	void sendBuffer(FString data);
-
-	void close(int32 code);
-
+	void Close();
+	
 };

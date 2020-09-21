@@ -1,10 +1,10 @@
-// Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SCCodecEngineModule.h"
 
 #define LOCTEXT_NAMESPACE "FSCCodecEngineModule"
 
-DEFINE_LOG_CATEGORY(LogSCCodecEngine);
+DEFINE_LOG_CATEGORY(SCCodecEngine);
 
 void FSCCodecEngineModule::StartupModule()
 {
@@ -18,5 +18,5 @@ void FSCCodecEngineModule::ShutdownModule()
 }
 
 #undef LOCTEXT_NAMESPACE
-
+	
 IMPLEMENT_MODULE(FSCCodecEngineModule, SCCodecEngine)

@@ -1,10 +1,10 @@
-// Copyright 2019 ZiiCreater, LLC. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SCAuthEngineModule.h"
 
 #define LOCTEXT_NAMESPACE "FSCAuthEngineModule"
 
-DEFINE_LOG_CATEGORY(LogSCAuthEngine);
+DEFINE_LOG_CATEGORY(SCAuthEngine);
 
 void FSCAuthEngineModule::StartupModule()
 {
@@ -18,5 +18,5 @@ void FSCAuthEngineModule::ShutdownModule()
 }
 
 #undef LOCTEXT_NAMESPACE
-
+	
 IMPLEMENT_MODULE(FSCAuthEngineModule, SCAuthEngine)

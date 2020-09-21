@@ -1,74 +1,39 @@
 {
-    "FileVersion": 3,
+	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "0.6.1",
-	"EngineVersion" : "4.24.0",
+	"VersionName": "1.0",
 	"FriendlyName": "SocketCluster",
-	"Description": "UE4 Client For SocketCluster",
-	"Category": "Networking",
+	"Description": "SocketCluster Client For UE4",
+	"Category": "Other",
 	"CreatedBy": "CodeWare Games",
 	"CreatedByURL": "https://www.codewaregames.com/",
-	"DocsURL": "https://github.com/ziicreater/socketcluster-client-ue4/wiki",
-	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/a27f2927912841f8883adb36a135b2e3",
-	"SupportURL": "https://gitter.im/SocketCluster/socketcluster",
-	"EnabledByDefault": true,
-	"CanContainContent": false,
-	"IsBetaVersion": true,
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
 	"Installed": false,
-    "Modules": [
-        {
-            "Name": "SCClient",
-            "Type": "Runtime",
-            "LoadingPhase": "Default",
-            "WhitelistPlatforms": [
-                "Win64",
-                "Win32"
-            ]
-        },
-        {
-            "Name": "SCSocket",
-            "Type": "Runtime",
-            "LoadingPhase": "Default",
-            "WhitelistPlatforms": [
-                "Win64",
-                "Win32"
-            ]
-        },
-        {
-            "Name": "SCErrors",
-            "Type": "Runtime",
-            "LoadingPhase": "Default",
-            "WhitelistPlatforms": [
-                "Win64",
-                "Win32"
-            ]
-        },
-        {
-            "Name": "SCCodecEngine",
-            "Type": "Runtime",
-            "LoadingPhase": "Default",
-            "WhitelistPlatforms": [
-                "Win64",
-                "Win32"
-            ]
-        },
-        {
-            "Name": "SCAuthEngine",
-            "Type": "Runtime",
-            "LoadingPhase": "Default",
-            "WhitelistPlatforms": [
-                "Win64",
-                "Win32"
-            ]
-        },
-        {
-            "Name": "SCJson",
-            "Type": "Runtime",
-            "LoadingPhase": "Default",
-            "WhitelistPlatforms": [
-                "Win64",
-                "Win32"
-            ]
-        }
-    ]
+	"Modules": [
+		{
+			"Name": "SCClient",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "SCSocket",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "SCCodecEngine",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "SCAuthEngine",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
 }
