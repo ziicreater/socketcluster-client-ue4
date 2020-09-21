@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <a href="http://socketcluster.io/"><img src="https://raw.github.com/SocketCluster/socketcluster/master/assets/logo.png" alt="SocketCluster" width="200"></a>
+  <a href="http://socketcluster.io/"><img src="https://socketcluster.io/img/socketcluster-logo-blue.png" alt="SocketCluster" width="200"></a>
   <br>
   Official SocketCluster Client UE4
   <br>
@@ -41,7 +41,6 @@
 - [ ] MacOS
 - [ ] Android 
 - [ ] iOS 
-- [ ] HTML5
 
 *Note : Any OS currently not supported will be added in the future.*
 
@@ -60,6 +59,8 @@ This plugin has been tested with following Unreal Engine 4 versions and won't wo
 - 4.21
 - 4.22
 - 4.23
+- 4.24
+- 4.25 (In Progress : https://github.com/ziicreater/socketcluster-client-ue4/tree/4.25)
 
 *Note : We will only support the latest UE4 Engine version.
 
