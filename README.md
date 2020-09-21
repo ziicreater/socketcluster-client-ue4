@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <a href="http://socketcluster.io/"><img src="https://socketcluster.io/img/socketcluster-logo-blue.png" alt="SocketCluster" width="200"></a>
+  <a href="http://socketcluster.io/"><img src="https://socketcluster.io/img/socketcluster-logo-blue.png" alt="SocketCluster" width="100"></a>
   <br>
   Official SocketCluster Client UE4
   <br>
