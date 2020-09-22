@@ -17,7 +17,7 @@ enum class ESocketState : uint8
 };
 
 /**
- * The SocketCluster Socket
+ * SocketCluster Socket
  */
 UCLASS()
 class SCSOCKET_API USCSocket : public UObject

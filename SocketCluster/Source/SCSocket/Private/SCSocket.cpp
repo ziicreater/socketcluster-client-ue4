@@ -9,7 +9,9 @@ void USCSocket::CreateWebSocket(FString Url)
 	Socket = FWebSocketsModule::Get().CreateWebSocket(Url, TEXT("ws"));
 
 	Socket->OnConnected().AddLambda([&]() -> void {
+#if !UE_BUILD_SHIPPING
 		UE_LOG(SCSocket, Log, TEXT("Connected To Server."));
+#endif
 		if (onopen)
 		{
 			onopen();
@@ -17,7 +19,9 @@ void USCSocket::CreateWebSocket(FString Url)
 	});
 
 	Socket->OnConnectionError().AddLambda([&](const FString& Error) -> void {
+#if !UE_BUILD_SHIPPING
 		UE_LOG(SCSocket, Error, TEXT("Error : %s"), *Error);
+#endif
 		if (onerror)
 		{
 			onerror(Error);
@@ -25,7 +29,9 @@ void USCSocket::CreateWebSocket(FString Url)
 	});
 
 	Socket->OnClosed().AddLambda([&](int32 StatusCode, const FString& Reason, bool bWasClean) -> void {
+#if !UE_BUILD_SHIPPING
 		UE_LOG(SCSocket, Warning, TEXT("Connection Closed : %s StatusCode : %d bWasClean : %f"), *Reason, StatusCode, (bWasClean ? TEXT("True") : TEXT("False")));
+#endif
 		if (onclose)
 		{
 			onclose(StatusCode, Reason, bWasClean);
@@ -33,13 +39,16 @@ void USCSocket::CreateWebSocket(FString Url)
 	});
 
 	Socket->OnMessage().AddLambda([&](const FString& Message) -> void {
+#if !UE_BUILD_SHIPPING
 		UE_LOG(SCSocket, Log, TEXT("Received : %s"), *Message);
+#endif
 		if (onmessage)
 		{
 			onmessage(Message);
 		}
 	});
 
+/*
 	Socket->OnRawMessage().AddLambda([&](const void* Data, SIZE_T Size, SIZE_T BytesRemaning) -> void {
 		// convert binary to string send to onmessage
 
@@ -50,32 +59,37 @@ void USCSocket::CreateWebSocket(FString Url)
 		}
 		
 	});
-
+*/
 	Socket->Connect();
 }
 
 void USCSocket::Send(FString Message)
 {
-	UE_LOG(SCSocket, Log, TEXT("Sending : %s"), *Message);
 	if (!Socket->IsConnected())
 	{
+#if !UE_BUILD_SHIPPING
 		UE_LOG(SCSocket, Warning, TEXT("Failed to send message, Socket not connected."));
+#endif
 		return;
 	}
 
 	Socket->Send(Message);
+
+#if !UE_BUILD_SHIPPING
 	UE_LOG(SCSocket, Log, TEXT("Send : %s"), *Message);
+#endif
 }
 
 void USCSocket::Close()
 {
-	UE_LOG(SCSocket, Log, TEXT("Closing Connection."));
 	if (!Socket->IsConnected())
 	{
-		UE_LOG(SCSocket, Warning, TEXT("Failed to close connection, Socket not connected."));
 		return;
 	}
 
 	Socket->Close();
+
+#if !UE_BUILD_SHIPPING
 	UE_LOG(SCSocket, Log, TEXT("Closed Connection."));
+#endif
 }

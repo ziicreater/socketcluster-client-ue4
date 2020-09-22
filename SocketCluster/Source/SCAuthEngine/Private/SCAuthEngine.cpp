@@ -2,18 +2,44 @@
 
 
 #include "SCAuthEngine.h"
+#include "Async/Async.h"
+#include "SCAuthEngineModule.h"
 
-FString USCAuthEngine::saveToken(FString name, FString token)
+FString USCAuthEngine::SaveToken(FString Name, FString Token)
 {
-	return FString();
+
+#if !UE_BUILD_SHIPPING
+	UE_LOG(SCAuthEngine, Log, TEXT("Saving Token : Name : %s Token : %s"), *Name, *Token);
+#endif
+
+	auto Promise = Async(EAsyncExecution::TaskGraph, [&] {
+		localStorage.Add(Name, Token);
+		return localStorage.FindRef(Name);
+	});
+	return Promise.Get();
 }
 
-FString USCAuthEngine::removeToken(FString name)
+FString USCAuthEngine::RemoveToken(FString Name)
 {
-	return FString();
+#if !UE_BUILD_SHIPPING
+	UE_LOG(SCAuthEngine, Log, TEXT("Removing Token : Name : %s"), *Name);
+#endif
+
+	FString token = LoadToken(Name);
+
+	localStorage.Remove(Name);
+
+	return token;
 }
 
-FString USCAuthEngine::loadToken(FString name)
+FString USCAuthEngine::LoadToken(FString Name)
 {
-	return FString();
+#if !UE_BUILD_SHIPPING
+	UE_LOG(SCAuthEngine, Log, TEXT("Loading Token : Name : %s"), *Name);
+#endif
+
+	auto Promise = Async(EAsyncExecution::TaskGraph, [&] {
+		return localStorage.FindRef(Name);
+	});
+	return Promise.Get();
 }

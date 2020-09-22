@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class SCClient : ModuleRules
+public class SCError : ModuleRules
 {
-	public SCClient(ReadOnlyTargetRules Target) : base(Target)
+	public SCError(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
@@ -38,12 +38,6 @@ public class SCClient : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"Json",
-				"SCSocket",
-				"SCCodecEngine",
-				"SCAuthEngine",
-				"Json",
-				"SCJson",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

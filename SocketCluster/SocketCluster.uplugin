@@ -34,6 +34,16 @@
 			"Name": "SCAuthEngine",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "SCJson",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "SCError",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		}
 	]
 }

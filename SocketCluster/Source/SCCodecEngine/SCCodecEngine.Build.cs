@@ -38,6 +38,8 @@ public class SCCodecEngine : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"Json",
+				"SCJson",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
