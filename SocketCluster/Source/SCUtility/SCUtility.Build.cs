@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class SCSocket : ModuleRules
+public class SCUtility : ModuleRules
 {
-	public SCSocket(ReadOnlyTargetRules Target) : base(Target)
+	public SCUtility(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
@@ -26,7 +26,6 @@ public class SCSocket : ModuleRules
 			new string[]
 			{
 				"Core",
-				"WebSockets"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -39,7 +38,6 @@ public class SCSocket : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"SCUtility",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

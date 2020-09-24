@@ -36,6 +36,7 @@ public class SCClient : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
+				"Projects",
 				"Slate",
 				"SlateCore",
 				"Json",
@@ -44,6 +45,7 @@ public class SCClient : ModuleRules
 				"SCAuthEngine",
 				"Json",
 				"SCJson",
+				"SCUtility",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

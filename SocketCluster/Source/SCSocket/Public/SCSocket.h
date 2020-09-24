@@ -7,14 +7,8 @@
 #include "WebSocketsModule.h"
 #include "IWebSocket.h"
 #include "Templates/SharedPointer.h"
+#include "SCUtility.h"
 #include "SCSocket.generated.h"
-
-enum class ESocketState : uint8
-{
-	CLOSED,
-	CONNECTING,
-	OPEN
-};
 
 /**
  * SocketCluster Socket
@@ -30,15 +24,27 @@ private:
 
 public:
 
-	ESocketState SocketState;
+	ESCSocketState SocketState;
 
-	TFunction<void()> onopen;
+	/**
+	* Called when the socket connects to the server.
+	*/
+	TFunction<void()> OnOpen;
 
-	TFunction<void(const FString&)> onerror;
+	/**
+	* Called when an connection error occurs on the socket.
+	*/
+	TFunction<void(const FString&)> OnError;
 
-	TFunction<void(int32, const FString&, bool)> onclose;
+	/**
+	* Called when the connection to the server is terminated.
+	*/
+	TFunction<void(int32, const FString&, bool)> OnClose;
 
-	TFunction<void(const FString&)> onmessage;
+	/**
+	* Called when we receive a message from the server.
+	*/
+	TFunction<void(const FString&)> OnMessage;
 
 	void CreateWebSocket(FString Url);
 

@@ -1102,10 +1102,7 @@ TSharedPtr<FJsonObject> USCJsonConvert::Merge(const TSharedPtr<FJsonObject>& Tar
 
 	for (auto Pair : SourceValues)
 	{
-		if (!TargetObject->Values.Contains(Pair.Key))
-		{
-			TargetObject->SetField(Pair.Key, Pair.Value);
-		}
+		TargetObject->SetField(Pair.Key, Pair.Value);
 	}
 	return TargetObject;
 }

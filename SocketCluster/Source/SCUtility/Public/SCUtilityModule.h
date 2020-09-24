@@ -5,9 +5,9 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(SCClient, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(SCUtility, Log, All);
 
-class FSCClientModule : public IModuleInterface
+class FSCUtilityModule : public IModuleInterface
 {
 public:
 

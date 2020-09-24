@@ -12,9 +12,9 @@ void USCSocket::CreateWebSocket(FString Url)
 #if !UE_BUILD_SHIPPING
 		UE_LOG(SCSocket, Log, TEXT("Connected To Server."));
 #endif
-		if (onopen)
+		if (OnOpen)
 		{
-			onopen();
+			OnOpen();
 		}
 	});
 
@@ -22,9 +22,9 @@ void USCSocket::CreateWebSocket(FString Url)
 #if !UE_BUILD_SHIPPING
 		UE_LOG(SCSocket, Error, TEXT("Error : %s"), *Error);
 #endif
-		if (onerror)
+		if (OnError)
 		{
-			onerror(Error);
+			OnError(Error);
 		}
 	});
 
@@ -32,9 +32,9 @@ void USCSocket::CreateWebSocket(FString Url)
 #if !UE_BUILD_SHIPPING
 		UE_LOG(SCSocket, Warning, TEXT("Connection Closed : %s StatusCode : %d bWasClean : %f"), *Reason, StatusCode, (bWasClean ? TEXT("True") : TEXT("False")));
 #endif
-		if (onclose)
+		if (OnClose)
 		{
-			onclose(StatusCode, Reason, bWasClean);
+			OnClose(StatusCode, Reason, bWasClean);
 		}
 	});
 
@@ -42,9 +42,9 @@ void USCSocket::CreateWebSocket(FString Url)
 #if !UE_BUILD_SHIPPING
 		UE_LOG(SCSocket, Log, TEXT("Received : %s"), *Message);
 #endif
-		if (onmessage)
+		if (OnMessage)
 		{
-			onmessage(Message);
+			OnMessage(Message);
 		}
 	});
 
