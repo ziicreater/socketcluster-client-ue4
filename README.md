@@ -1,3 +1,6 @@
+# [ARCHIVED] 
+There are no plans of updating Socketcluster Client for UE4 to the latest version due to lack of use and in favor of GRPC.
+
 <h1 align="center">
   <br>
   <a href="http://socketcluster.io/"><img src="https://socketcluster.io/img/socketcluster-logo-blue.png" alt="SocketCluster" width="100"></a>
